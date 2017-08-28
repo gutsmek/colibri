@@ -1,0 +1,29 @@
+project( SPUnitFW )
+cmake_minimum_required( VERSION 3.1 )
+
+LIST( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+include( CheckIncludeFile )
+include( CheckSymbolExists )
+include( CheckFunctionExists )
+include( CPack )
+include( CTest )
+
+set( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/lib )
+set( EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/bin )
+
+file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/include/ )
+file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/lib )
+file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/bin )
+
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories( ${CMAKE_BINARY_DIR}/output/include )
+link_directories( ${CMAKE_BINARY_DIR}/output/lib  )
+
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/taskeng/src )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/funflow/src )
+
+add_subdirectory( taskeng )
+add_subdirectory( funnet )
+add_subdirectory( funflow )
+
