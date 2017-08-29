@@ -1,0 +1,9 @@
+[submodule "muroute"]
+	path = muroute
+	url = git@github.com:qqqzzz/muroute.git
+[submodule "muqueue"]
+	path = muqueue
+	url = git@github.com:qqqzzz/muqueue.git
+[submodule "muflow"]
+	path = muflow
+	url = git@github.com:qqqzzz/muflow.git

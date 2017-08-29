@@ -1,4 +1,4 @@
-project( SPUnitFW )
+project( Colibri )
 cmake_minimum_required( VERSION 3.1 )
 
 LIST( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -20,10 +20,11 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories( ${CMAKE_BINARY_DIR}/output/include )
 link_directories( ${CMAKE_BINARY_DIR}/output/lib  )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/taskeng/src )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/funflow/src )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/src )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muflow/src )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/src )
 
-add_subdirectory( taskeng )
-add_subdirectory( funnet )
-add_subdirectory( funflow )
+add_subdirectory( muqueue )
+add_subdirectory( muroute )
+add_subdirectory( muflow )
 
