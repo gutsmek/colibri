@@ -27,4 +27,5 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/src )
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
+add_subdirectory( evioslam )
 
