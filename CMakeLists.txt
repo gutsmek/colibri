@@ -1,6 +1,8 @@
 project( Colibri )
 cmake_minimum_required( VERSION 3.1 )
 
+LIST( APPEND CMAKE_MODULE_PATH ~/staging_dir/lib/cmake)
+LIST( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 LIST( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 LIST( APPEND CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
         /opt/ros/melodic/share/catkin/cmake/
