@@ -14,6 +14,9 @@ include( CheckFunctionExists )
 include( CPack )
 include( CTest )
 
+# debug compilation time and mem
+#add_compile_options("-v" "-ftime-report") # "-Q"
+
 set( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/lib )
 set( EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/bin )
 
