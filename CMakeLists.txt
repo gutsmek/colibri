@@ -17,6 +17,12 @@ include( CTest )
 # debug compilation time and mem
 #add_compile_options("-v" "-ftime-report") # "-Q"
 
+option(WITH_OCTREE "Use Octomap for pointcloud compression and indexing" ON)
+
+if (WITH_OCTREE)
+    find_package(octomap 1.8 REQUIRED)
+endif()
+
 set( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/lib )
 set( EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/bin )
 
