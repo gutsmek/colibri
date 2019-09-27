@@ -17,7 +17,7 @@ include( CTest )
 # debug compilation time and mem
 #add_compile_options("-v" "-ftime-report") # "-Q"
 
-option(WITH_OCTREE "Use Octomap for pointcloud compression and indexing" OFF)
+option(WITH_OCTREE "Use Octomap for pointcloud compression and indexing" ON)
 
 if (WITH_OCTREE)
     find_package(octomap 1.8 REQUIRED)
