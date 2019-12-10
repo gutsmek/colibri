@@ -17,6 +17,11 @@ include( CTest )
 # debug compilation time and mem
 #add_compile_options("-v" "-ftime-report") # "-Q"
 
+# gprof support
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+#SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+#SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
+
 find_package(octomap 1.8 REQUIRED)
 option(WITH_OCTREE "Use Octomap for pointcloud compression and indexing" OFF)
 
