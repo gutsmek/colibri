@@ -28,7 +28,7 @@ sudo make install
 
 #### Pangolin
 sudo apt-get install ffmpeg libavcodec-dev libavutil-dev libavformat-dev libswscale-dev 
-sudo apt-get install libjpeg-dev libpng12-dev libtiff5-dev libopenexr-dev
+sudo apt-get install libjpeg-dev libpng-dev libtiff5-dev libopenexr-dev
 sudo apt-get install libdc1394-22-dev libraw1394-dev
 sudo apt-get install libpython2.7-dev
 sudo apt-get install libglew-dev
