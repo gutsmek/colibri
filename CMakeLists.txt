@@ -22,9 +22,6 @@ include( CTest )
 #SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 #SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 
-find_package(octomap 1.8 REQUIRED)
-option(WITH_OCTREE "Use Octomap for pointcloud compression and indexing" OFF)
-
 set( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/lib )
 set( EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/bin )
 
