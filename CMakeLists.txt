@@ -25,20 +25,16 @@ include( CTest )
 set( LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/lib )
 set( EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR}/output/bin )
 
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/include/ )
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/lib )
-file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/bin )
+file( MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/output/include )
+file( MAKE_DIRECTORY ${EXECUTABLE_OUTPUT_PATH} )
+file( MAKE_DIRECTORY ${LIBRARY_OUTPUT_PATH} )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+link_directories( ${LIBRARY_OUTPUT_PATH} )
+
 include_directories( ${CMAKE_BINARY_DIR}/output/include )
-link_directories( ${CMAKE_BINARY_DIR}/output/lib  )
-
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/include/ )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muflow/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/src )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muflow/src )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/src )
 
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
