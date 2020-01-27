@@ -1,7 +1,9 @@
 # colibri
 
 ### Prerequisites
+```bash
 sudo apt-get install libusb-dev libuv-dev libeigen3-dev libboost-all-dev libopencv-all-dev clang-format
+```
 
 #### Realsense2
 https://github.com/IntelRealSense/librealsense/blob/development/doc/distribution_linux.md
