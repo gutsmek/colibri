@@ -1,0 +1,29 @@
+[muqueue]
+
+  [muqueue.async_subsystem]
+    num_workers = 2
+
+  [muqueue.scheduler]
+    num_workers = 4
+    queue_capacity = 1000
+
+[muflow]
+
+  [muflow.dynamic_loader]
+    function_library_path = ""
+
+  [muflow.sparse_mem]
+    detector_threshold = 0.8
+
+[muroute]
+
+  serial_interface = ""
+  network_interface = "eth0"
+  default_port = ""
+ 
+  [muroute.telemetry]
+    with_local_log = true
+    with_network = false
+    log_directory_path = "/home/nvidia/work/telemetry_logs"
+    telemetry_port = 7777
+
