@@ -74,13 +74,12 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
                                                       TYPE type) {
   unique_ptr<MuConfObject> objp = make_unique<MuConfObject>();
 
-  objp->t_ = type;
-
   switch (type) {
     case TYPE::BOOL: {
       option<bool> o = getOption<bool>(key);
       if ((bool)o) {
         objp->v_.push_back(static_cast<uint8_t>(*o));
+        objp->t_ = type;
       }
     } break;
 
@@ -89,6 +88,7 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
       if ((bool)o) {
         objp->v_.reserve(sizeof(int));
         memcpy(objp->v_.data(), &(*o), sizeof(int));
+        objp->t_ = type;
       }
     } break;
 
@@ -97,6 +97,7 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
       if ((bool)o) {
         objp->v_.reserve(sizeof(double));
         memcpy(objp->v_.data(), &(*o), sizeof(double));
+        objp->t_ = type;
       }
     } break;
 
@@ -104,11 +105,11 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
       option<string> o = getOption<string>(key);
       if ((bool)o) {
         objp->v_.assign(o->begin(), o->end());
+        objp->t_ = type;
       }
     } break;
 
     default:
-      objp->t_ = TYPE::UNDEF;
       break;
   }
 

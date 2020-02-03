@@ -11,21 +11,21 @@ namespace muconfig {
 
 enum class TYPE : uint8_t {
   UNDEF,
-  BOOL = 1,
+  BOOL,
   INT,
   DOUBLE,
   STRING,
-  TABLE,
-  ARRAY,
-  TABLE_ARRAY, /* NI */
-  TIME,
-  DATE,
-  DATETIME,
-  OFFSET /* NI */
+  TABLE,        // NI
+  ARRAY,        // |
+  TABLE_ARRAY,  // |
+  TIME,         // |
+  DATE,         // |
+  DATETIME,     // V
+  OFFSET,       // NI
 };
 
 enum class LANG : uint8_t {
-  UNKNOWN = 0,
+  UNKNOWN,
   JSON,  // NI
   TOML,
   YAML,  // NI
@@ -63,6 +63,7 @@ struct MuConfObject {
       } break;
 
       default:
+        std::cout << "Unsupported type\n";
         break;
     }
 
