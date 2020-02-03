@@ -13,10 +13,7 @@ int main(int argc, char** argv) {
   }
 
   unique_ptr<MuConfig> cfg = MuConfig::createConfig(argv[1]);
-  if (cfg == nullptr) {
-    cout << "Failed to parse " << argv[1] << endl;
-    return 1;
-  }
+  if (cfg == nullptr || !cfg->isOk()) return 1;
 
   cfg->print();
 
@@ -56,10 +53,7 @@ int main(int argc, char** argv) {
   }
 
   unique_ptr<MuConfig> cfg2 = MuConfig::createConfig(cfg->getName());
-  if (cfg == nullptr) {
-    cout << "Failed to parse " << cfg->getName() << endl;
-    return 1;
-  }
+  if (cfg2 == nullptr || !cfg2->isOk()) return 1;
 
   const string s_log_dir = "muroute.telemetry.log_directory_path";
   auto log_dir = cfg2->getObject(s_log_dir, TYPE::STRING);
