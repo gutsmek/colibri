@@ -72,12 +72,13 @@ class MuConfigToml : public MuConfig {
 
 std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
                                                       TYPE type) {
-  unique_ptr<MuConfObject> objp = make_unique<MuConfObject>();
+  unique_ptr<MuConfObject> objp = {};
 
   switch (type) {
     case TYPE::BOOL: {
       option<bool> o = getOption<bool>(key);
       if ((bool)o) {
+        objp = make_unique<MuConfObject>();
         objp->v_.push_back(static_cast<uint8_t>(*o));
         objp->t_ = type;
       }
@@ -86,6 +87,7 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
     case TYPE::INT: {
       option<int> o = getOption<int>(key);
       if ((bool)o) {
+        objp = make_unique<MuConfObject>();
         objp->v_.reserve(sizeof(int));
         memcpy(objp->v_.data(), &(*o), sizeof(int));
         objp->t_ = type;
@@ -95,6 +97,7 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
     case TYPE::DOUBLE: {
       option<double> o = getOption<double>(key);
       if ((bool)o) {
+        objp = make_unique<MuConfObject>();
         objp->v_.reserve(sizeof(double));
         memcpy(objp->v_.data(), &(*o), sizeof(double));
         objp->t_ = type;
@@ -104,6 +107,7 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
     case TYPE::STRING: {
       option<string> o = getOption<string>(key);
       if ((bool)o) {
+        objp = make_unique<MuConfObject>();
         objp->v_.assign(o->begin(), o->end());
         objp->t_ = type;
       }
@@ -126,6 +130,9 @@ unique_ptr<MuConfig> MuConfig::createConfig(const string &filename, LANG lang) {
       else
         cfgp = make_unique<MuConfigToml>(filename);
     } break;
+
+    case LANG::JSON:
+    case LANG::YAML:
     default:
       break;
   }
