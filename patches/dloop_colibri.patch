@@ -1,0 +1,59 @@
+diff --git a/include/DLoopDetector/TemplatedLoopDetector.h b/include/DLoopDetector/TemplatedLoopDetector.h
+index 589382d..b838f33 100644
+--- a/include/DLoopDetector/TemplatedLoopDetector.h
++++ b/include/DLoopDetector/TemplatedLoopDetector.h
+@@ -261,9 +261,10 @@ public:
+    * @param match (out) match or failing information
+    * @return true iff there was match
+    */
+-  bool detectLoop(const std::vector<cv::KeyPoint> &keys, 
+-    const std::vector<TDescriptor> &descriptors,
+-    DetectionResult &match);
++  bool detectLoop(const std::vector<cv::KeyPoint> &keys,
++                  const std::vector<TDescriptor> &descriptors,
++                  DetectionResult &match,
++                  bool updateDb = false);
+ 
+   /**
+    * Resets the detector and clears the database, such that the next entry
+@@ -694,10 +695,10 @@ TemplatedLoopDetector<TDescriptor, F>::getVocabulary() const
+ // --------------------------------------------------------------------------
+ 
+ template<class TDescriptor, class F>
+-bool TemplatedLoopDetector<TDescriptor, F>::detectLoop(
+-  const std::vector<cv::KeyPoint> &keys, 
+-  const std::vector<TDescriptor> &descriptors,
+-  DetectionResult &match)
++bool TemplatedLoopDetector<TDescriptor, F>::detectLoop(const std::vector<cv::KeyPoint> &keys,
++                                                       const std::vector<TDescriptor> &descriptors,
++                                                       DetectionResult &match,
++                                                       bool updateDb)
+ {
+   EntryId entry_id = m_database->size();
+   match.query = entry_id;
+@@ -713,9 +714,10 @@ bool TemplatedLoopDetector<TDescriptor, F>::detectLoop(
+ 
+   if((int)entry_id <= m_params.dislocal)
+   {
+-    // only add the entry to the database and finish
+-    m_database->add(bowvec, featvec);
+-    match.status = CLOSE_MATCHES_ONLY;
++      // only add the entry to the database and finish
++      if (updateDb)
++          m_database->add(bowvec, featvec);
++      match.status = CLOSE_MATCHES_ONLY;
+   }
+   else
+   {
+@@ -725,8 +727,9 @@ bool TemplatedLoopDetector<TDescriptor, F>::detectLoop(
+     m_database->query(bowvec, qret, m_params.max_db_results, max_id);
+ 
+     // update database
+-    m_database->add(bowvec, featvec); // returns entry_id
+-    
++    if (updateDb)
++        m_database->add(bowvec, featvec); // returns entry_id
++
+     if(!qret.empty())
+     {
+       // factor to compute normalized similarity score, if necessary
