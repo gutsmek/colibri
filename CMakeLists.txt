@@ -32,10 +32,12 @@ file( MAKE_DIRECTORY ${LIBRARY_OUTPUT_PATH} )
 link_directories( ${LIBRARY_OUTPUT_PATH} )
 
 include_directories( ${CMAKE_BINARY_DIR}/output/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muconfig/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muflow/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/include )
 
+add_subdirectory( muconfig )
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
