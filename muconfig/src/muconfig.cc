@@ -123,6 +123,8 @@ std::unique_ptr<MuConfObject> MuConfigToml::getObject(const string &key,
 unique_ptr<MuConfig> MuConfig::createConfig(const string &filename, LANG lang) {
   unique_ptr<MuConfig> cfgp = {};
 
+  //  assert(false);
+
   switch (lang) {
     case LANG::TOML: {
       if (filename == "")
