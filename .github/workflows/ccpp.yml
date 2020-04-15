@@ -1,0 +1,33 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+        token: ${{ secrets.CI_TOKEN }}
+    - name: Install reuirements
+      run: sudo apt-get install -y libev-dev libboost-all-dev libasio-dev
+    - name: configure
+      run: mkdir -p build && cd build && cmake ../ -DCPACK_BINARY_DEB=ON 
+    - name: check
+      run: pwd && ls -la
+    - name: make
+      run: make -j -C build
+    - name: pack
+      run: make package -C build
+    - name: Upload math result for job 1
+      uses: actions/upload-artifact@v1
+      with:
+        name: debian_packages
+        path: build/packages

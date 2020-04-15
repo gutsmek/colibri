@@ -7,9 +7,6 @@
 [submodule "muflow"]
 	path = muflow
 	url = git@github.com:qqqzzz/muflow.git
-[submodule "evioslam"]
-	path = evioslam
-	url = git@github.com:qqqzzz/evioslam.git
 [submodule "muconfig"]
 	path = muconfig
 	url = git@github.com:qqqzzz/muconfig.git
