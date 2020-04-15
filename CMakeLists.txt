@@ -8,7 +8,6 @@ LIST( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include( CheckIncludeFile )
 include( CheckSymbolExists )
 include( CheckFunctionExists )
-include( CPack )
 include( CTest )
 
 # debug compilation time and mem
@@ -34,8 +33,50 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muqueue/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muflow/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/include )
 
+
+######################################
+######################################
+##### CPACK GENERAL INFO #############
+#####
+configure_file("LICENSE" "LICENSE" COPYONLY)
+configure_file("README.md" "README.md" COPYONLY)
+
+set(CPACK_PACKAGE_NAME lib${PROJECT_NAME})
+set(CPACK_SET_DESTDIR OFF)
+#set(CPACK_COMPONENTS_GROUPING ONE_PER_GROUP)
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CPACK_RESOURCE_FILE_README}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Async task queues and event handling library")
+set(CPACK_PACKAGE_VENDOR "EDEL LLC")
+set(CPACK_PACKAGE_CONTACT "info@edelsys.com")
+set(CPACK_PACKAGE_VERSION ${VERSION})
+
+SET(CPACK_STRIP_FILES "lib/*")
+SET(CPACK_SOURCE_STRIP_FILES "")
+
+######################################
+##### CPACK DEBIAN INFO ##############
+#####
+set(CPACK_GENERATOR DEB)
+set(CPACK_DEB_COMPONENT_INSTALL 1)
+set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "info@edelsys.com")
+set(CPACK_OUTPUT_FILE_PREFIX packages)
+#set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.amd64")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+
+#####
+######################################
+######################################
+
 add_subdirectory( muconfig )
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
 add_subdirectory( evioslam )
+
+
+include(CPack)
