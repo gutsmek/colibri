@@ -79,10 +79,6 @@ add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
 
-## packaging extras
-# pack find
-
-
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
@@ -99,24 +95,19 @@ write_basic_package_version_file(
   )
 
 ### Install Config and ConfigVersion files
-#install(
-#  TARGETS "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}Config.cmake"
-#        "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake"
-#        EXPORT ${GLOB_PACKAGE_NAME}Targets
-#  DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
-#  )
+
 install(
-  FILES "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}Config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake"
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}Config.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake
   DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
-  COMPONENT all
+  COMPONENT all-dev
   )
 
-#install(EXPORT ${GLOB_PACKAGE_NAME}Targets
-#  FILE "${GLOB_PACKAGE_NAME}-targets.cmake"
+#install(EXPORT ${GLOB_PACKAGE_NAME}-targets
+#    FILE "${GLOB_PACKAGE_NAME}-targets.cmake"
 #  NAMESPACE ${GLOB_PACKAGE_NAME}::
 #  DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
-#  COMPONENT all
+##  COMPONENT all
 #)
 
 include(CPack)
