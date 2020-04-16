@@ -1,3 +1,5 @@
+![C/C++ CI](https://github.com/qqqzzz/colibri/workflows/C/C++%20CI/badge.svg)
+
 # colibri
 
 ### Prerequisites
