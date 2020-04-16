@@ -17,7 +17,7 @@ jobs:
         submodules: true
         ssh-key: '${{ secrets.CI_KEY_2 }}'
     - name: Install build requirements
-      run: sudo apt-get install -y libev-dev libboost-all-dev libasio-dev libeigen3-dev libgoogle-glog-dev clang-format
+      run: sudo apt-get install -y libev-dev libboost-all-dev libasio-dev libeigen3-dev libgoogle-glog-dev
     - name: configure
       run: mkdir -p build && cd build && cmake ../ -DCPACK_BINARY_DEB=ON 
     - name: check
