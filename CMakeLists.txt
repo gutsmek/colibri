@@ -82,4 +82,41 @@ add_subdirectory( muflow )
 ## packaging extras
 # pack find
 
+
+include(CMakePackageConfigHelpers)
+
+configure_package_config_file(
+  "Config.cmake.in"
+  "${GLOB_PACKAGE_NAME}Config.cmake"
+  INSTALL_DESTINATION lib/cmake/lib${PROJECT_NAME}
+#  PATH_VARS  lib
+  )
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake
+  VERSION 1.0.0
+  COMPATIBILITY SameMajorVersion
+  )
+
+### Install Config and ConfigVersion files
+#install(
+#  TARGETS "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}Config.cmake"
+#        "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake"
+#        EXPORT ${GLOB_PACKAGE_NAME}Targets
+#  DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
+#  )
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}Config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}ConfigVersion.cmake"
+  DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
+  COMPONENT all
+  )
+
+#install(EXPORT ${GLOB_PACKAGE_NAME}Targets
+#  FILE "${GLOB_PACKAGE_NAME}-targets.cmake"
+#  NAMESPACE ${GLOB_PACKAGE_NAME}::
+#  DESTINATION lib/cmake/${GLOB_PACKAGE_NAME}
+#  COMPONENT all
+#)
+
 include(CPack)
