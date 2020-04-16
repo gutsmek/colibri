@@ -7,6 +7,3 @@
 [submodule "muflow"]
 	path = muflow
 	url = git@github.com:qqqzzz/muflow.git
-[submodule "muconfig"]
-	path = muconfig
-	url = git@github.com:qqqzzz/muconfig.git

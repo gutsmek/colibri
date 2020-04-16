@@ -37,3 +37,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_subdirectory( src )
 add_subdirectory( tests )
 
+set(COMPONENT_NAME ${PROJECT_NAME})
+set(COMPONENT_NAME_BOLD MUCONFIG)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}-${COMPONENT_NAME}-config.cmake @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${GLOB_PACKAGE_NAME}-${COMPONENT_NAME}-config.cmake DESTINATION lib/${GLOB_PACKAGE_NAME}-${VERSION}/ COMPONENT ${COMPONENT_NAME}-dev)

@@ -41,6 +41,8 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/muroute/include )
 configure_file("LICENSE" "LICENSE" COPYONLY)
 configure_file("README.md" "README.md" COPYONLY)
 
+set(GLOB_PACKAGE_NAME libcolibri)
+
 set(CPACK_PACKAGE_NAME lib${PROJECT_NAME})
 set(CPACK_SET_DESTDIR OFF)
 #set(CPACK_COMPONENTS_GROUPING ONE_PER_GROUP)
@@ -76,5 +78,8 @@ add_subdirectory( muconfig )
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
+
+## packaging extras
+# pack find
 
 include(CPack)
