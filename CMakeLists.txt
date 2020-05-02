@@ -78,6 +78,7 @@ add_subdirectory( muconfig )
 add_subdirectory( muqueue )
 add_subdirectory( muroute )
 add_subdirectory( muflow )
+add_subdirectory( mutelemetry )
 
 include(CMakePackageConfigHelpers)
 
