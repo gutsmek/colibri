@@ -10,6 +10,7 @@
 using namespace std;
 using namespace muconfig;
 using namespace mutelemetry;
+using namespace mutelemetry_ulog;
 
 MuTelemetry MuTelemetry::instance_ = {};
 
@@ -89,27 +90,146 @@ bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
   return true;
 }
 
-bool MuTelemetry::store_message(const std::string &message,
+bool MuTelemetry::store_message(const string &message,
                                 mutelemetry_ulog::ULogLevel level) {
   uint64_t tstmp = timestamp();
   // TODO:
   return true;
 }
 
-bool MuTelemetry::register_info(const std::string &key,
-                                const std::string &value) {
-  // TODO:
+bool MuTelemetry::create_header_and_flags() {
+  if (!is_enabled()) return true;
+
+  ULogFileHeader fh(start_timestamp_);
+  SerializedData fh_buffer(sizeof(fh));
+  fh.write_to(fh_buffer.data());
+  SerializedDataPtr fhp = make_shared<SerializedData>(move(fh_buffer));
+
+  ULogMessageB mB = {};
+  mB.h_.size_ = sizeof(mB) - sizeof(mB.h_);
+  mB.h_.type_ = static_cast<uint8_t>(ULogMessageType::B);
+  SerializedData mb_buffer(sizeof(mB));
+  memcpy(mb_buffer.data(), reinterpret_cast<uint8_t *>(&mB), sizeof(mB));
+  SerializedDataPtr mbp = make_shared<SerializedData>(move(mb_buffer));
+
+  if (is_log_enabled()) {
+    log_queue_.push(fhp);
+    log_queue_.push(mbp);
+  }
+
+  if (is_net_enabled()) {
+    net_queue_.push(fhp);
+    net_queue_.push(mbp);
+  }
+
   return true;
 }
 
-bool MuTelemetry::register_info_multi(const std::string &key,
-                                      const std::string &value,
+bool MuTelemetry::register_param(const string &key, int32_t value) {
+  if (!is_enabled()) return true;
+
+  bool res = true;
+  ULogMessageP mP = {};
+  mP.h_.type_ = static_cast<uint8_t>(ULogMessageType::P);
+  size_t len = sizeof(value);
+  mP.key_len_ = snprintf(mP.key_, sizeof(mP.key_), "%s", key.c_str());
+  size_t msg_size = sizeof(mP) - sizeof(mP.key_) + mP.key_len_;
+
+  if (len < (sizeof(mP) - msg_size)) {
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(&mP);
+    memcpy(&buffer[msg_size], &value, len);
+    msg_size += len;
+    mP.h_.size_ = msg_size - sizeof(mP.h_);
+    SerializedData mp_buffer(buffer, buffer + msg_size);
+    SerializedDataPtr mpp = make_shared<SerializedData>(move(mp_buffer));
+    if (is_log_enabled()) log_queue_.push(mpp);
+    if (is_net_enabled()) net_queue_.push(mpp);
+  } else
+    res = false;
+
+  return res;
+}
+
+bool MuTelemetry::register_param(const string &key, float value) {
+  if (!is_enabled()) return true;
+
+  bool res = true;
+  ULogMessageP mP = {};
+  mP.h_.type_ = static_cast<uint8_t>(ULogMessageType::P);
+  size_t len = sizeof(value);
+  mP.key_len_ = snprintf(mP.key_, sizeof(mP.key_), "%s", key.c_str());
+  size_t msg_size = sizeof(mP) - sizeof(mP.key_) + mP.key_len_;
+
+  if (len < (sizeof(mP) - msg_size)) {
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(&mP);
+    memcpy(&buffer[msg_size], &value, len);
+    msg_size += len;
+    mP.h_.size_ = msg_size - sizeof(mP.h_);
+    SerializedData mp_buffer(buffer, buffer + msg_size);
+    SerializedDataPtr mpp = make_shared<SerializedData>(move(mp_buffer));
+    if (is_log_enabled()) log_queue_.push(mpp);
+    if (is_net_enabled()) net_queue_.push(mpp);
+  } else
+    res = false;
+
+  return res;
+}
+
+bool MuTelemetry::register_info(const string &key, const std::string &value) {
+  if (!is_enabled()) return true;
+
+  bool res = true;
+  ULogMessageI mI = {};
+  mI.h_.type_ = static_cast<uint8_t>(ULogMessageType::I);
+  size_t len = value.length();
+  mI.key_len_ =
+      snprintf(mI.key_, sizeof(mI.key_), "char[%zu] %s", len, key.c_str());
+  size_t msg_size = sizeof(mI) - sizeof(mI.key_) + mI.key_len_;
+
+  if (len < (sizeof(mI) - msg_size)) {
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(&mI);
+    memcpy(&buffer[msg_size], value.c_str(), len);
+    msg_size += len;
+    mI.h_.size_ = msg_size - sizeof(mI.h_);
+    SerializedData mi_buffer(buffer, buffer + msg_size);
+    SerializedDataPtr mip = make_shared<SerializedData>(move(mi_buffer));
+    if (is_log_enabled()) log_queue_.push(mip);
+    if (is_net_enabled()) net_queue_.push(mip);
+  } else
+    res = false;
+
+  return res;
+}
+
+bool MuTelemetry::register_info_multi(const string &key, const string &value,
                                       bool is_continued) {
-  // TODO:
-  return true;
+  if (!is_enabled()) return true;
+
+  bool res = true;
+  ULogMessageM mM = {};
+  mM.h_.type_ = static_cast<uint8_t>(ULogMessageType::M);
+  size_t len = value.length();
+  mM.is_continued_ = is_continued;
+  mM.key_len_ =
+      snprintf(mM.key_, sizeof(mM.key_), "char[%zu] %s", len, key.c_str());
+  size_t msg_size = sizeof(mM) - sizeof(mM.key_) + mM.key_len_;
+
+  if (len < (sizeof(mM) - msg_size)) {
+    uint8_t *buffer = reinterpret_cast<uint8_t *>(&mM);
+    memcpy(&buffer[msg_size], value.c_str(), len);
+    msg_size += len;
+    mM.h_.size_ = msg_size - sizeof(mM.h_);
+    SerializedData mm_buffer(buffer, buffer + msg_size);
+    SerializedDataPtr mmp = make_shared<SerializedData>(move(mm_buffer));
+    if (is_log_enabled()) log_queue_.push(mmp);
+    if (is_net_enabled()) net_queue_.push(mmp);
+  } else
+    res = false;
+
+  return res;
 }
 
-bool MuTelemetry::register_data(const std::string &format) {
+bool MuTelemetry::register_data_format(const string &format) {
   // TODO:
   return true;
 }

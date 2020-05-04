@@ -10,11 +10,13 @@
 
 #pragma once
 
-#include <glog/logging.h>
 #include <muroute/subsystem.h>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <functional>
+#include <mutex>
+#include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -54,14 +56,59 @@ class MuTelemetry {
     }
   };
 
+  // TODO: change to lock free
+  template <typename T>
+  class ConcQueue {
+   public:
+    ConcQueue() = default;
+    virtual ~ConcQueue() = default;
+
+    template <typename... Args>
+    void push(Args &&... args) {
+      addData_protected([&] { queue_.emplace(std::forward<Args>(args)...); });
+    }
+
+    T pop(void) noexcept {
+      std::unique_lock<std::mutex> lock{mutex_};
+      while (queue_.empty()) {
+        condNewData_.wait(lock);
+      }
+      auto elem = std::move(queue_.front());
+      queue_.pop();
+      return elem;
+    }
+
+    size_t size(void) const { return queue_.size(); }
+    bool empty(void) const { return queue_.empty(); }
+
+   private:
+    template <class F>
+    void addData_protected(F &&fct) {
+      std::unique_lock<std::mutex> lock{mutex_};
+      fct();
+      lock.unlock();
+      condNewData_.notify_one();
+    }
+
+    std::queue<T> queue_;
+    std::mutex mutex_;
+    std::condition_variable condNewData_;
+  };
+
   bool with_network_ = false;
   bool with_local_log_ = false;
   fflow::RouteSystemPtr roster_ = nullptr;
   std::string log_dir_ = "";
   std::string log_file_ = "";
   uint64_t start_timestamp_ = 0;
+
   ID<uint16_t> msg_id_;
   std::unordered_map<uint16_t, ID<uint8_t>> multi_id_;
+
+  using SerializedData = std::vector<uint8_t>;
+  using SerializedDataPtr = std::shared_ptr<SerializedData>;
+  ConcQueue<SerializedDataPtr> log_queue_;
+  ConcQueue<SerializedDataPtr> net_queue_;
 
  private:
   MuTelemetry() {}
@@ -97,6 +144,7 @@ class MuTelemetry {
   }
 
   bool read_config(MuTelemetry &inst = instance_, const std::string &file = "");
+  bool create_header_and_flags();
   bool store_data_intl(const std::vector<uint8_t> &, const std::string &,
                        const std::string &, uint64_t);
 
@@ -105,17 +153,20 @@ class MuTelemetry {
   static inline MuTelemetry &getInstance() { return instance_; }
 
  public:
+  inline bool is_log_enabled() const { return with_local_log_; }
+  inline bool is_net_enabled() const { return with_network_; }
   inline bool is_enabled() const { return with_network_ || with_local_log_; }
 
   inline const std::string &get_logname() const { return log_file_; }
   inline const std::string &get_logdir() const { return log_dir_; }
 
+  bool register_param(const std::string &, int32_t);
+  bool register_param(const std::string &key, float);
   bool register_info(const std::string &, const std::string &);
-
   bool register_info_multi(const std::string &, const std::string &, bool);
 
   // example of format string: "DataTypeName;float a;int[3] b;bool c;"
-  bool register_data(const std::string &);
+  bool register_data_format(const std::string &);
 
   // v1: using Serializable interface
   bool store_data(std::shared_ptr<Serializable> s, const std::string &type_name,

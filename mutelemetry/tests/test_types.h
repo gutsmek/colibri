@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include <algorithm>
 #include <array>
 #include <iostream>

@@ -177,11 +177,17 @@ int main(int argc, char **argv) {
   mt.register_info("company", "EDEL LLC");
   mt.register_info("sys_name", "RBPi4");
   mt.register_info("replay", mt.get_logname());
-  mt.register_data(DataType0::name() + string(":") + DataType0::fields());
-  mt.register_data(DataType1::name() + string(":") + DataType1::fields());
-  mt.register_data(DataType2::name() + string(":") + DataType2::fields());
-  mt.register_data(DataType3::name() + string(":") + DataType3::fields());
-  mt.register_data("DataType4:DataType3[3] array;");
+  mt.register_param("int32_t param1", 123);
+  mt.register_data_format(DataType0::name() + string(":") +
+                          DataType0::fields());
+  mt.register_data_format(DataType1::name() + string(":") +
+                          DataType1::fields());
+  mt.register_data_format(DataType2::name() + string(":") +
+                          DataType2::fields());
+  mt.register_data_format(DataType3::name() + string(":") +
+                          DataType3::fields());
+  mt.register_data_format("DataType4:DataType3[3] array;");
+  mt.register_param("float param2", -3.01f);
 
   const int n_threads = atoi(argv[1]);
   RResultFutures futures(n_threads);

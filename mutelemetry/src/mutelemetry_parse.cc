@@ -126,7 +126,7 @@ MutelemetryParser::ParseState MutelemetryParser::parse_header(
       STATE_INVALID;
 #endif
   state_;
-  if (file_header.readFrom(buffer)) {
+  if (file_header.read_from(buffer)) {
     start_time_ = file_header.timestamp_;
     next_state = STATE_FLAGS;
   }
@@ -342,7 +342,7 @@ MutelemetryParser::ParseState MutelemetryParser::parse_format(
   }
 
   format.name_ = name;
-  formats_[name] = std::move(format);
+  formats_[name] = move(format);
   return next_state;
 }
 

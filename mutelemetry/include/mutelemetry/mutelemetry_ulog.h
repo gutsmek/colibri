@@ -37,7 +37,7 @@ struct ULogFileHeader {
   uint8_t version_ = 0x01;
   uint64_t timestamp_ = 0;
 
-  void writeTo(unsigned char buffer[16]) const {
+  void write_to(unsigned char buffer[16]) const {
     buffer[0] = magic_[0];
     buffer[1] = magic_[1];
     buffer[2] = magic_[2];
@@ -49,13 +49,15 @@ struct ULogFileHeader {
     *(reinterpret_cast<uint64_t *>(&buffer[8])) = timestamp_;
   }
 
-  bool readFrom(const uint8_t *buffer) {
+  bool read_from(const uint8_t *buffer) {
     if (std::memcmp(magic_, buffer, 7) != 0) return false;
     version_ = buffer[7];
     timestamp_ = *(reinterpret_cast<const uint64_t *>(&buffer[8]));
     return true;
   }
 };
+
+static_assert(sizeof(ULogFileHeader) == 16, "ULogFileHeader bad size");
 
 #pragma pack(push, 1)
 
