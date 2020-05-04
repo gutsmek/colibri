@@ -112,9 +112,9 @@ struct ULogMessageD {
 
 struct ULogMessageL {
   ULogMessageHeader h_;
-  uint8_t log_level_;
+  char log_level_;
   uint64_t timestamp_;
-  char message_[128];
+  char message_[1500];
 };
 
 struct ULogMessageS {

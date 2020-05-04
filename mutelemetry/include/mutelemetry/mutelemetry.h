@@ -145,6 +145,12 @@ class MuTelemetry {
 
   bool read_config(MuTelemetry &inst = instance_, const std::string &file = "");
   bool create_header_and_flags();
+
+  inline void to_io(const SerializedDataPtr dp) {
+    if (is_log_enabled()) log_queue_.push(dp);
+    if (is_net_enabled()) net_queue_.push(dp);
+  }
+
   bool store_data_intl(const std::vector<uint8_t> &, const std::string &,
                        const std::string &, uint64_t);
 
@@ -161,7 +167,7 @@ class MuTelemetry {
   inline const std::string &get_logdir() const { return log_dir_; }
 
   bool register_param(const std::string &, int32_t);
-  bool register_param(const std::string &key, float);
+  bool register_param(const std::string &, float);
   bool register_info(const std::string &, const std::string &);
   bool register_info_multi(const std::string &, const std::string &, bool);
 

@@ -80,23 +80,6 @@ bool MuTelemetry::init(fflow::RouteSystemPtr roster) {
   return instance_.is_enabled();
 }
 
-bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
-                                  const string &type_name,
-                                  const string &annotation,
-                                  uint64_t timestamp) {
-  LOG(INFO) << "[" << this_thread::get_id() << "]:"
-            << " Annotation=\'" << annotation << "\' Type=" << type_name;
-  // TODO: here we pack both ADD message and DATA message
-  return true;
-}
-
-bool MuTelemetry::store_message(const string &message,
-                                mutelemetry_ulog::ULogLevel level) {
-  uint64_t tstmp = timestamp();
-  // TODO:
-  return true;
-}
-
 bool MuTelemetry::create_header_and_flags() {
   if (!is_enabled()) return true;
 
@@ -104,6 +87,7 @@ bool MuTelemetry::create_header_and_flags() {
   SerializedData fh_buffer(sizeof(fh));
   fh.write_to(fh_buffer.data());
   SerializedDataPtr fhp = make_shared<SerializedData>(move(fh_buffer));
+  to_io(fhp);
 
   ULogMessageB mB = {};
   mB.h_.size_ = sizeof(mB) - sizeof(mB.h_);
@@ -111,16 +95,7 @@ bool MuTelemetry::create_header_and_flags() {
   SerializedData mb_buffer(sizeof(mB));
   memcpy(mb_buffer.data(), reinterpret_cast<uint8_t *>(&mB), sizeof(mB));
   SerializedDataPtr mbp = make_shared<SerializedData>(move(mb_buffer));
-
-  if (is_log_enabled()) {
-    log_queue_.push(fhp);
-    log_queue_.push(mbp);
-  }
-
-  if (is_net_enabled()) {
-    net_queue_.push(fhp);
-    net_queue_.push(mbp);
-  }
+  to_io(mbp);
 
   return true;
 }
@@ -142,10 +117,11 @@ bool MuTelemetry::register_param(const string &key, int32_t value) {
     mP.h_.size_ = msg_size - sizeof(mP.h_);
     SerializedData mp_buffer(buffer, buffer + msg_size);
     SerializedDataPtr mpp = make_shared<SerializedData>(move(mp_buffer));
-    if (is_log_enabled()) log_queue_.push(mpp);
-    if (is_net_enabled()) net_queue_.push(mpp);
-  } else
+    to_io(mpp);
+  } else {
     res = false;
+    assert(0);
+  }
 
   return res;
 }
@@ -167,15 +143,16 @@ bool MuTelemetry::register_param(const string &key, float value) {
     mP.h_.size_ = msg_size - sizeof(mP.h_);
     SerializedData mp_buffer(buffer, buffer + msg_size);
     SerializedDataPtr mpp = make_shared<SerializedData>(move(mp_buffer));
-    if (is_log_enabled()) log_queue_.push(mpp);
-    if (is_net_enabled()) net_queue_.push(mpp);
-  } else
+    to_io(mpp);
+  } else {
     res = false;
+    assert(0);
+  }
 
   return res;
 }
 
-bool MuTelemetry::register_info(const string &key, const std::string &value) {
+bool MuTelemetry::register_info(const string &key, const string &value) {
   if (!is_enabled()) return true;
 
   bool res = true;
@@ -193,10 +170,11 @@ bool MuTelemetry::register_info(const string &key, const std::string &value) {
     mI.h_.size_ = msg_size - sizeof(mI.h_);
     SerializedData mi_buffer(buffer, buffer + msg_size);
     SerializedDataPtr mip = make_shared<SerializedData>(move(mi_buffer));
-    if (is_log_enabled()) log_queue_.push(mip);
-    if (is_net_enabled()) net_queue_.push(mip);
-  } else
+    to_io(mip);
+  } else {
     res = false;
+    assert(0);
+  }
 
   return res;
 }
@@ -221,15 +199,105 @@ bool MuTelemetry::register_info_multi(const string &key, const string &value,
     mM.h_.size_ = msg_size - sizeof(mM.h_);
     SerializedData mm_buffer(buffer, buffer + msg_size);
     SerializedDataPtr mmp = make_shared<SerializedData>(move(mm_buffer));
-    if (is_log_enabled()) log_queue_.push(mmp);
-    if (is_net_enabled()) net_queue_.push(mmp);
-  } else
+    to_io(mmp);
+  } else {
     res = false;
+    assert(0);
+  }
 
   return res;
 }
 
 bool MuTelemetry::register_data_format(const string &format) {
-  // TODO:
+  if (!is_enabled()) return true;
+
+  ULogMessageF mF = {};
+
+  mF.h_.type_ = static_cast<uint8_t>(ULogMessageType::F);
+  int format_len =
+      snprintf(mF.format_, sizeof(mF.format_), "%s", format.c_str());
+  size_t msg_size = sizeof(mF) - sizeof(mF.format_) + format_len;
+  mF.h_.size_ = msg_size - sizeof(mF.h_);
+
+  SerializedData mf_buffer(sizeof(msg_size));
+  memcpy(mf_buffer.data(), reinterpret_cast<uint8_t *>(&mF), msg_size);
+  SerializedDataPtr mfp = make_shared<SerializedData>(move(mf_buffer));
+  to_io(mfp);
+
+  return true;
+}
+
+bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
+                                  const string &type_name,
+                                  const string &annotation,
+                                  uint64_t timestamp) {
+  if (!is_enabled()) return true;
+  // LOG(INFO) << "[" << this_thread::get_id() << "]:"
+  //          << " Annotation=\'" << annotation << "\' Type=" << type_name;
+
+  bool res = true;
+  ULogMessageA mA = {};
+  mA.h_.type_ = static_cast<uint8_t>(ULogMessageType::A);
+  mA.msg_id_ = get_msg_id(type_name);
+  mA.multi_id_ = get_multi_id(mA.msg_id_, annotation);
+
+  int name_len = type_name.length();
+  memcpy(mA.message_name_, type_name.c_str(), name_len);
+
+  size_t ma_msg_size = sizeof(mA) - sizeof(mA.message_name_) + name_len;
+  mA.h_.size_ = ma_msg_size - sizeof(mA.h_);
+
+  ULogMessageD mD = {};
+  mD.h_.type_ = static_cast<uint8_t>(ULogMessageType::D);
+  mD.msg_id_ = mA.msg_id_;
+
+  if (data.size() + sizeof(timestamp) <= sizeof(mD.data_)) {
+    size_t len = sizeof(timestamp);
+    memcpy(&mD.data_[0], reinterpret_cast<uint8_t *>(&timestamp), len);
+    memcpy(&mD.data_[len], data.data(), data.size());
+    len += data.size();
+
+    size_t md_msg_size = sizeof(mD) - sizeof(mD.data_) + len;
+    mD.h_.size_ = md_msg_size - sizeof(mD.h_);
+
+    SerializedData buffer(ma_msg_size + md_msg_size);
+    memcpy(&buffer[0], reinterpret_cast<uint8_t *>(&mA), ma_msg_size);
+    memcpy(&buffer[ma_msg_size], reinterpret_cast<uint8_t *>(&mD), md_msg_size);
+
+    SerializedDataPtr datap = make_shared<SerializedData>(move(buffer));
+    to_io(datap);
+  } else {
+    res = false;
+    assert(0);
+  }
+
+  return res;
+}
+
+bool MuTelemetry::store_message(const string &message,
+                                mutelemetry_ulog::ULogLevel level) {
+  uint64_t tstmp = timestamp();
+
+  if (!is_enabled()) return true;
+
+  ULogMessageL mL = {};
+  if (message.length() + 1 > sizeof(mL.message_)) {
+    assert(0);
+    return false;
+  }
+
+  mL.h_.type_ = static_cast<uint8_t>(ULogMessageType::L);
+  mL.log_level_ = char(level);
+  mL.timestamp_ = tstmp;
+
+  int len = snprintf(mL.message_, sizeof(mL.message_), "%s", message.c_str());
+  size_t msg_size = sizeof(mL) - sizeof(mL.message_) + len;
+  mL.h_.size_ = msg_size - sizeof(mL.h_);
+
+  SerializedData ml_buffer(sizeof(msg_size));
+  memcpy(ml_buffer.data(), reinterpret_cast<uint8_t *>(&mL), msg_size);
+  SerializedDataPtr mlp = make_shared<SerializedData>(move(ml_buffer));
+  to_io(mlp);
+
   return true;
 }
