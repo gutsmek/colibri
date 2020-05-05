@@ -21,6 +21,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include "mutelemetry_logger.h"
+#include "mutelemetry_network.h"
 #include "mutelemetry_ulog.h"
 
 namespace mutelemetry {

@@ -171,7 +171,7 @@ auto generator = [](int type) {
                       << " functional serialization finished" << endl;
             return serialized;
           };
-          ret = MuTelemetry::getInstance().store_data(s, DataType2::name(),
+          ret = MuTelemetry::getInstance().store_data(s, DataType3::name(),
                                                       TOSTR(d3));
         } break;
 

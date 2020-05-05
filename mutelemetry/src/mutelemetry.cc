@@ -12,6 +12,8 @@ using namespace muconfig;
 using namespace mutelemetry;
 using namespace mutelemetry_ulog;
 
+#define TEST_PARSE_VALIDITY
+
 MuTelemetry MuTelemetry::instance_ = {};
 
 bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
@@ -70,6 +72,7 @@ bool MuTelemetry::init(fflow::RouteSystemPtr roster) {
 
     if (instance_.with_local_log_) {
       LOG(INFO) << "MuTelemetry log directory: " << instance_.log_dir_ << endl;
+
     } else {
       LOG(INFO) << "MuTelemetry logging is disabled\n";
     }
