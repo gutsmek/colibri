@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <glog/logging.h>
 #include <algorithm>
 #include <array>
@@ -40,8 +41,14 @@ struct DataType0 {
   bool operator!=(const DataType0& that) const { return !(*this == that); }
 
   std::vector<uint8_t> serialize() {
-    std::vector<uint8_t> serialized;
-    // TODO: add serialization here
+    std::vector<uint8_t> serialized(sizeof(DataType0));
+    size_t len = 0;
+    std::memcpy(&serialized[0], &a, sizeof(a));
+    len += sizeof(a);
+    std::memcpy(&serialized[len], &b, sizeof(b));
+    len += sizeof(b);
+    std::memcpy(&serialized[len], &c, sizeof(c));
+    assert(serialized.size() == sizeof(c) + len);
     LOG(INFO) << name() << " builtin serialization finished";
     return serialized;
   }

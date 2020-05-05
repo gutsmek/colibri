@@ -48,7 +48,12 @@ class MuTelemetry {
       ids_ = id.ids_;
     }
 
-    ID<T> &operator=(const ID<T> &that) { return *this; }
+    ID<T> &operator=(const ID<T> &that) {
+      if (&that == this) return *this;
+      id_cntr_ = that.id_cntr_.load();
+      ids_ = that.ids_;
+      return *this;
+    }
 
     inline T get_id(const std::string &name) {
       if (ids_.find(name) == ids_.end()) ids_[name] = id_cntr_++;

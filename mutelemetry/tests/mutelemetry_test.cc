@@ -18,7 +18,6 @@ class DataType0Serializable : public Serializable, public DataType0 {
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
-    // DataType0 has its own ULog-compliant serialization method, let's reuse it
     return DataType0::serialize();
   }
 };
@@ -26,23 +25,68 @@ class DataType0Serializable : public Serializable, public DataType0 {
 class DataType1Serializable : public Serializable, public DataType1 {
  public:
   vector<uint8_t> serialize() override {
-    std::vector<uint8_t> serialized;
+    std::vector<uint8_t> serialized(sizeof(DataType1));
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
-    // TODO: add serialization here, since DataType1 doesn't have its own
+    size_t len = 0;
+    std::memcpy(&serialized[0], a, sizeof(a));
+    len += sizeof(a);
+    std::memcpy(&serialized[len], b, sizeof(b));
+    assert(serialized.size() == sizeof(b) + len);
     LOG(INFO) << name() << " serialization finished";
     return serialized;
   }
 };
 
-std::vector<uint8_t> DataType4_serialize(const DataType4 &d) {
-  std::vector<uint8_t> serialized;
+vector<uint8_t> DataType2_serialize(const DataType2 &d2) {
+  vector<uint8_t> serialized;
+  size_t len = 0;
+  size_t v_size = sizeof(d2.a[0]);
+  for (auto v : d2.a) {
+    memcpy(&serialized[len], &v, v_size);
+    len += v_size;
+  }
+  for (const string &v : d2.b) {
+    v_size = v.length();
+    memcpy(&serialized[len], v.c_str(), v_size);
+    len += v_size;
+  }
+  serialized[len] = (uint8_t)d2.c;
+  return serialized;
+}
+
+vector<uint8_t> DataType3_serialize(const DataType3 &d3) {
+  vector<uint8_t> serialized;
+  for (DataType0 v : d3.a) {
+    vector<uint8_t> a_serialized = v.serialize();
+    serialized.insert(serialized.end(), a_serialized.begin(),
+                      a_serialized.end());
+  }
+
+  DataType1Serializable d1;
+  memcpy(d1.a, d3.b.a, sizeof(d1.a));
+  memcpy(d1.b, d3.b.b, sizeof(d1.b));
+  vector<uint8_t> b_serialized = d1.serialize();
+  serialized.insert(serialized.end(), b_serialized.begin(), b_serialized.end());
+
+  vector<uint8_t> c_serialized = DataType2_serialize(d3.c);
+  serialized.insert(serialized.end(), c_serialized.begin(), c_serialized.end());
+
+  return serialized;
+}
+
+vector<uint8_t> DataType4_serialize(const DataType4 &d4) {
+  vector<uint8_t> serialized;
   stringstream ss;
   ss << TOSTR(DataType4)
      << " serialization ";  //<< fixed << setprecision(4) << d;
   LOG(INFO) << ss.str();
-  // TODO: add serialization here
+  for (int i = 0; i < d4.size(); ++i) {
+    vector<uint8_t> d3_serialized = DataType3_serialize(d4[i]);
+    serialized.insert(serialized.end(), d3_serialized.begin(),
+                      d3_serialized.end());
+  }
   LOG(INFO) << TOSTR(DataType4) << " external serialization finished";
   return serialized;
 }
@@ -102,12 +146,11 @@ auto generator = [](int type) {
         case 2: {
           DataType2 d2;
           SerializerFunc s = [&d2]() {
-            std::vector<uint8_t> serialized;
             stringstream ss;
             ss << DataType2::name() << " serialization ";
             //<< fixed << setprecision(4) << d2;
             LOG(INFO) << ss.str();
-            // TODO: add serialization here
+            vector<uint8_t> serialized = DataType2_serialize(d2);
             LOG(INFO) << DataType2::name()
                       << " functional serialization finished" << endl;
             return serialized;
@@ -117,14 +160,13 @@ auto generator = [](int type) {
         } break;
 
         case 3: {
-          DataType2 d3;
+          DataType3 d3;
           SerializerFunc s = [&d3]() {
-            std::vector<uint8_t> serialized;
             stringstream ss;
             ss << DataType3::name() << " serialization ";
             //<< fixed << setprecision(4) << d3;
             LOG(INFO) << ss.str();
-            // TODO: add serialization here
+            vector<uint8_t> serialized = DataType3_serialize(d3);
             LOG(INFO) << DataType3::name()
                       << " functional serialization finished" << endl;
             return serialized;
@@ -135,7 +177,7 @@ auto generator = [](int type) {
 
         case 4: {
           DataType4 d4;
-          std::vector<uint8_t> d4_serialized = DataType4_serialize(d4);
+          vector<uint8_t> d4_serialized = DataType4_serialize(d4);
           ret = MuTelemetry::getInstance().store_data(
               d4_serialized, TOSTR(DataType4), TOSTR(d4));
         } break;
