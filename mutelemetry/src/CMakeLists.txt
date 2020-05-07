@@ -7,6 +7,7 @@ set(MUTELEMETRY_HEADER
     ${INCLUDE_DIR}/mutelemetry_parse.h
     ${INCLUDE_DIR}/mutelemetry_logger.h
     ${INCLUDE_DIR}/mutelemetry_network.h
+    ${INCLUDE_DIR}/mutelemetry_tools.h
     )
 aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} SOURCE)
 
