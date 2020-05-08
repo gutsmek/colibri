@@ -15,7 +15,7 @@ using namespace mutelemetry_tools;
 
 MuTelemetry MuTelemetry::instance_ = {};
 
-bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
+bool MuTelemetry::read_config(const string &file) {
   unique_ptr<MuConfig> cfg = MuConfig::createConfig(file);
   bool with_local_log = false;
   bool with_network = false;
@@ -45,14 +45,11 @@ bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
         if (log_dirp) log_dir = *log_dirp;
       }
 
-      // if (log_dir == "")
-      //  inst.log_dir_ = "./";
-      // else
-      inst.log_dir_ = log_dir;
+      log_dir_ = log_dir;
     }
 
-    inst.with_network_ = with_network;
-    inst.with_local_log_ = with_local_log;
+    with_network_ = with_network;
+    with_local_log_ = with_local_log;
     res = true;
   }
 
@@ -60,8 +57,12 @@ bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
 }
 
 bool MuTelemetry::init(fflow::RouteSystemPtr roster) {
-  MuTelemetry &instance = MuTelemetry::instance_;
-  if (instance.roster_) return false;
+  MuTelemetry &instance = getInstance();
+  if (instance.start_timestamp_ != 0) {
+    LOG(INFO) << "MuTelemetry already initialized\n";
+    return false;
+  }
+
   instance.start_timestamp_ = instance.timestamp();
   if (instance.read_config()) {
     if (instance.with_network_ && roster != nullptr) {
@@ -256,10 +257,10 @@ bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
                                   const string &annotation,
                                   uint64_t timestamp) {
   if (!is_enabled()) return true;
-  // LOG(INFO) << "[" << this_thread::get_id() << "]:"
-  //          << " Annotation=\'" << annotation << "\' Type=" << type_name;
-
+  LOG(INFO) << "[" << this_thread::get_id() << "]:"
+            << " Annotation=\'" << annotation << "\' Type=" << type_name;
   bool res = true;
+
   ULogMessageA mA = {};
   mA.h_.type_ = static_cast<uint8_t>(ULogMessageType::A);
   mA.msg_id_ = get_msg_id(type_name);
@@ -318,7 +319,7 @@ bool MuTelemetry::store_message(const string &message,
   size_t msg_size = sizeof(mL) - sizeof(mL.message_) + len;
   mL.h_.size_ = msg_size - sizeof(mL.h_);
 
-  SerializedData ml_buffer(sizeof(msg_size));
+  SerializedData ml_buffer(msg_size);
   memcpy(ml_buffer.data(), reinterpret_cast<uint8_t *>(&mL), msg_size);
   SerializedDataPtr mlp = make_shared<SerializedData>(move(ml_buffer));
   to_io(mlp);

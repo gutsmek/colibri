@@ -212,7 +212,6 @@ int main(int argc, char **argv) {
   // google::InitGoogleLogging(argv[0]);
   MuTelemetry::init();
 
-#if 0
   MuTelemetry &mt = MuTelemetry::getInstance();
 
   if (!mt.is_enabled()) return 1;
@@ -243,7 +242,6 @@ int main(int argc, char **argv) {
     if (!get<0>(result))
       LOG(INFO) << "Thread [" << get<1>(result) << "] failed" << endl;
   }
-#endif
 
   return 0;
 }

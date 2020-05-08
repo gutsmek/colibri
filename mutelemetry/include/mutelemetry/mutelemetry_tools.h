@@ -3,6 +3,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <queue>
+#include <stack>
 #include <vector>
 
 namespace mutelemetry_tools {
@@ -31,8 +32,15 @@ class ConcQueue {
     return elem;
   }
 
-  size_t size(void) const { return queue_.size(); }
-  bool empty(void) const { return queue_.empty(); }
+  size_t size(void) const {
+    std::lock_guard<std::mutex> lock{mutex_};
+    return queue_.size();
+  }
+
+  bool empty(void) const {
+    std::lock_guard<std::mutex> lock{mutex_};
+    return queue_.empty();
+  }
 
  private:
   template <class F>
@@ -44,7 +52,52 @@ class ConcQueue {
   }
 
   std::queue<T> queue_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
+  std::condition_variable condNewData_;
+};
+
+template <typename T>
+class ConcStack {
+ public:
+  ConcStack() = default;
+  virtual ~ConcStack() = default;
+
+  template <typename... Args>
+  void push(Args &&... args) {
+    addData_protected([&] { stack_.emplace(std::forward<Args>(args)...); });
+  }
+
+  T pop(void) noexcept {
+    std::unique_lock<std::mutex> lock{mutex_};
+    while (stack_.empty()) {
+      condNewData_.wait(lock);
+    }
+    auto elem = std::move(stack_.top());
+    stack_.pop();
+    return elem;
+  }
+
+  size_t size(void) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return stack_.size();
+  }
+
+  bool empty(void) const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return stack_.empty();
+  }
+
+ private:
+  template <class F>
+  void addData_protected(F &&fct) {
+    std::unique_lock<std::mutex> lock{mutex_};
+    fct();
+    lock.unlock();
+    condNewData_.notify_one();
+  }
+
+  std::stack<T> stack_;
+  mutable std::mutex mutex_;
   std::condition_variable condNewData_;
 };
 

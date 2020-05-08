@@ -109,7 +109,7 @@ class MuTelemetry {
         .count();
   }
 
-  bool read_config(MuTelemetry &inst = instance_, const std::string &file = "");
+  bool read_config(const std::string &file = "");
   bool create_header_and_flags();
 
   inline void to_io(const mutelemetry_tools::SerializedDataPtr dp) {
