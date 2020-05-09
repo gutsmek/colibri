@@ -25,14 +25,14 @@ class DataType0Serializable : public Serializable, public DataType0 {
 class DataType1Serializable : public Serializable, public DataType1 {
  public:
   vector<uint8_t> serialize() override {
-    std::vector<uint8_t> serialized(sizeof(DataType1));
+    vector<uint8_t> serialized(sizeof(DataType1));
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
     size_t len = 0;
-    std::memcpy(&serialized[0], a, sizeof(a));
+    memcpy(&serialized[0], a, sizeof(a));
     len += sizeof(a);
-    std::memcpy(&serialized[len], b, sizeof(b));
+    memcpy(&serialized[len], b, sizeof(b));
     assert(serialized.size() == sizeof(b) + len);
     LOG(INFO) << name() << " serialization finished";
     return serialized;
@@ -43,16 +43,23 @@ vector<uint8_t> DataType2_serialize(const DataType2 &d2) {
   vector<uint8_t> serialized;
   size_t len = 0;
   size_t v_size = sizeof(d2.a[0]);
+  size_t new_size = sizeof(d2.a);
+  serialized.resize(new_size);
+
   for (auto v : d2.a) {
     memcpy(&serialized[len], &v, v_size);
     len += v_size;
   }
+
   for (const string &v : d2.b) {
     v_size = v.length();
+    new_size += v_size;
+    serialized.resize(new_size);
     memcpy(&serialized[len], v.c_str(), v_size);
     len += v_size;
   }
-  serialized[len] = (uint8_t)d2.c;
+
+  serialized.push_back((uint8_t)d2.c);
   return serialized;
 }
 
@@ -242,6 +249,8 @@ int main(int argc, char **argv) {
     if (!get<0>(result))
       LOG(INFO) << "Thread [" << get<1>(result) << "] failed" << endl;
   }
+
+  pause();
 
   return 0;
 }

@@ -125,7 +125,7 @@ MutelemetryParser::ParseState MutelemetryParser::parse_header(
 #else
       STATE_INVALID;
 #endif
-  state_;
+
   if (file_header.read_from(buffer)) {
     start_time_ = file_header.timestamp_;
     next_state = STATE_FLAGS;
@@ -136,12 +136,7 @@ MutelemetryParser::ParseState MutelemetryParser::parse_header(
 MutelemetryParser::ParseState MutelemetryParser::parse_flags(
     const uint8_t *buffer, uint16_t size) {
   assert(state_ == STATE_FLAGS);
-  ParseState next_state =
-#ifdef RELAXED_STATE_MACHINE
-      state_;
-#else
-      STATE_INVALID;
-#endif
+  ParseState next_state = STATE_DEFINITION;
   const ULogMessageHeader *hdr =
       reinterpret_cast<const ULogMessageHeader *>(buffer);
   if (ULogMessageType(hdr->type_) == ULogMessageType::B) {

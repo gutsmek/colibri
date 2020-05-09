@@ -64,7 +64,7 @@ struct DataType1 {
   }
 
   static inline const std::string& fields() {
-    static const std::string fields_("float[3] a;uint32_t[4] b;");
+    static const std::string fields_("float[3] a;int32_t[4] b;");
     return fields_;
   }
 

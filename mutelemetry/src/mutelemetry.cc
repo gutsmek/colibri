@@ -100,7 +100,10 @@ bool MuTelemetry::init(fflow::RouteSystemPtr roster) {
       LOG(INFO) << "MuTelemetry logging is disabled\n";
   }
 
-  if (!instance.is_enabled()) LOG(INFO) << "MuTelemetry is disabled\n";
+  if (instance.is_enabled())
+    instance.create_header_and_flags();
+  else
+    LOG(INFO) << "MuTelemetry is disabled\n";
 
   return instance.is_enabled();
 }
@@ -239,12 +242,12 @@ bool MuTelemetry::register_data_format(const string &format) {
   ULogMessageF mF = {};
 
   mF.h_.type_ = static_cast<uint8_t>(ULogMessageType::F);
-  int format_len =
-      snprintf(mF.format_, sizeof(mF.format_), "%s", format.c_str());
+  int format_len = snprintf(mF.format_, format.size(), "%s", format.c_str());
+  assert(format_len == format.size());
   size_t msg_size = sizeof(mF) - sizeof(mF.format_) + format_len;
   mF.h_.size_ = msg_size - sizeof(mF.h_);
 
-  SerializedData mf_buffer(sizeof(msg_size));
+  SerializedData mf_buffer(msg_size);
   memcpy(mf_buffer.data(), reinterpret_cast<uint8_t *>(&mF), msg_size);
   SerializedDataPtr mfp = make_shared<SerializedData>(move(mf_buffer));
   to_io(mfp);
