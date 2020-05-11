@@ -23,12 +23,13 @@ class MutelemetryLogger {
 
    public:
     bool add(mutelemetry_tools::SerializedDataPtr dp) {
+      bool is_full = false;
       size_t data_size = dp->size();
-      if (data_size + data_size_ >= max_data_size_) return false;
+      if (data_size + data_size_ >= max_data_size_) is_full = true;
       if (has_data()) add_started_ = std::chrono::system_clock::now();
       data_size_ += data_size;
       buffer_.emplace_back(dp);
-      return true;
+      return is_full;
     }
 
     bool can_start_io() const {

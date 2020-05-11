@@ -96,17 +96,16 @@ void MutelemetryLogger::run() {
           }
 #endif  // TEST_PARSE_VALIDITY
 
-          bool is_full = !curr_idx_->add(dp);
+          bool is_full = curr_idx_->add(dp);
           if (is_full) {
             start_io_worker(curr_idx_);
             curr_idx_ = pool_stacked_index_.pop();
             assert(curr_idx_->size() == 0);
-            curr_idx_->add(dp);
           }
         }
 
         if (curr_idx_->can_start_io()) {
-          start_io_worker(curr_idx_);
+          start_io_worker(curr_idx_, true);
           curr_idx_ = pool_stacked_index_.pop();
           assert(curr_idx_->size() == 0);
         }
