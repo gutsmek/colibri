@@ -3,49 +3,73 @@
 #include "mutelemetry/mutelemetry_tools.h"
 
 #include <array>
+#include <atomic>
 #include <cassert>
+#include <chrono>
 #include <fstream>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace mutelemetry_logger {
 
 class MutelemetryLogger {
   class DataBuffer {
    public:
-    DataBuffer() : idx_(0), data_size_(0) {}
+    DataBuffer() : data_size_(0) {}
     DataBuffer(const DataBuffer &) = delete;
     DataBuffer &operator=(const DataBuffer &) = delete;
     virtual ~DataBuffer() = default;
 
    public:
     bool add(mutelemetry_tools::SerializedDataPtr dp) {
-      if (idx_ == max_size_) return false;
       size_t data_size = dp->size();
       if (data_size + data_size_ >= max_data_size_) return false;
+      if (has_data()) add_started_ = std::chrono::system_clock::now();
       data_size_ += data_size;
-      buffer_[idx_++] = dp;
+      buffer_.emplace_back(dp);
       return true;
     }
 
+    bool can_start_io() const {
+      if (!has_data()) return false;
+      double time_sec = std::chrono::duration_cast<std::chrono::seconds>(
+                            std::chrono::system_clock::now() - add_started_)
+                            .count();
+      return time_sec >= can_start_io_interval_;
+    }
+
     mutelemetry_tools::SerializedDataPtr operator[](size_t idx) {
-      if (idx >= idx_) return nullptr;
+      if (idx >= buffer_.size()) return nullptr;
       return buffer_[idx];
     }
 
-    inline bool has_data() const { return idx_ > 0; }
+    inline bool has_data() const { return data_size_ > 0; }
     inline size_t size() const { return data_size_; }
-    inline size_t idx() const { return idx_; }
-    inline void clear() { data_size_ = idx_ = 0; }
+
+    mutelemetry_tools::SerializedData data() const {
+      mutelemetry_tools::SerializedData result;
+      size_t total = buffer_.size();
+      for (size_t i = 0; i < total; ++i) {
+        mutelemetry_tools::SerializedDataPtr dp = buffer_[i];
+        result.insert(result.end(), dp->begin(), dp->end());
+      }
+      return result;
+    }
+
+    inline void clear() {
+      buffer_.clear();
+      data_size_ = 0;
+    }
 
    public:
-    static const size_t max_size_ = 64;
-    static const size_t max_data_size_ = 8096;
+    static constexpr size_t max_data_size_ = 4096;
+    static constexpr double can_start_io_interval_ = 1.0;  // 1 sec
 
    private:
+    std::chrono::time_point<std::chrono::system_clock> add_started_;
     size_t data_size_;
-    size_t idx_;
-    std::array<mutelemetry_tools::SerializedDataPtr, max_size_> buffer_;
+    std::vector<mutelemetry_tools::SerializedDataPtr> buffer_;
   };
 
  public:
@@ -66,13 +90,13 @@ class MutelemetryLogger {
 
  private:
   inline void flush() {
-    if (inited_) file_.flush();
+    if (running_) file_.flush();
   }
 
   void start_io_worker(DataBuffer *, bool do_flush = false);
 
  private:
-  bool inited_;
+  std::atomic<bool> running_;
   mutelemetry_tools::ConcQueue<mutelemetry_tools::SerializedDataPtr>
       *data_queue_;
   std::string filename_;

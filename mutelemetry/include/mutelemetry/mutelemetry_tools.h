@@ -18,11 +18,11 @@ class ConcQueue {
   virtual ~ConcQueue() = default;
 
   template <typename... Args>
-  void push(Args &&... args) {
+  void enqueue(Args &&... args) {
     addData_protected([&] { queue_.emplace(std::forward<Args>(args)...); });
   }
 
-  T pop(void) noexcept {
+  T dequeue(void) noexcept {
     std::unique_lock<std::mutex> lock{mutex_};
     while (queue_.empty()) {
       condNewData_.wait(lock);

@@ -113,8 +113,8 @@ class MuTelemetry {
   bool create_header_and_flags();
 
   inline void to_io(const mutelemetry_tools::SerializedDataPtr dp) {
-    if (is_log_enabled()) log_queue_.push(dp);
-    if (is_net_enabled()) net_queue_.push(dp);
+    if (is_log_enabled()) log_queue_.enqueue(dp);
+    if (is_net_enabled()) net_queue_.enqueue(dp);
   }
 
   bool store_data_intl(const std::vector<uint8_t> &, const std::string &,
