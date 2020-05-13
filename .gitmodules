@@ -10,3 +10,6 @@
 [submodule "muconfig"]
 	path = muconfig
 	url = git@github.com:qqqzzz/muconfig.git
+[submodule "mutelemetry"]
+	path = mutelemetry
+	url = git@github.com:qqqzzz/mutelemetry.git
