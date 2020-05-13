@@ -630,6 +630,7 @@ const uint8_t *MutelemetryParser::parse_data_intl(Timeseries &timeseries,
           break;
         case OTHER: {
           auto child_format = formats_.at(field.other_type_id_);
+          message += sizeof(uint64_t);
           message = parse_data_intl(timeseries, &child_format, message, index);
         } break;
       }

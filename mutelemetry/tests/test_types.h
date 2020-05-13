@@ -15,6 +15,7 @@
 #pragma pack(push, 1)
 
 struct DataType0 {
+  uint64_t __timestamp = 0;
   double a = 1111.2222;
   unsigned int b = 3;
   short int c = -4;
@@ -43,7 +44,9 @@ struct DataType0 {
   std::vector<uint8_t> serialize() {
     std::vector<uint8_t> serialized(sizeof(DataType0));
     size_t len = 0;
-    std::memcpy(&serialized[0], &a, sizeof(a));
+    std::memcpy(&serialized[0], &__timestamp, sizeof(__timestamp));
+    len += sizeof(__timestamp);
+    std::memcpy(&serialized[len], &a, sizeof(a));
     len += sizeof(a);
     std::memcpy(&serialized[len], &b, sizeof(b));
     len += sizeof(b);

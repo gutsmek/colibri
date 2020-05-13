@@ -54,12 +54,15 @@ void MutelemetryLogger::release(bool on_file_error) {
 }
 
 void MutelemetryLogger::start_io_worker(DataBuffer *dbp, bool do_flush) {
-  // Since post_function calls are serialized, we do not need any additional
-  // protection of file handle
   fflow::post_function<void>([dbp, do_flush, this](void) -> void {
     if (running_) {
       SerializedData result = dbp->data();
-      file_.write(reinterpret_cast<const char *>(result.data()), result.size());
+      {
+        // WARNING: why do we need it if post_function calls are serialized?
+        std::lock_guard<std::mutex> lock(mutex_);
+        file_.write(reinterpret_cast<const char *>(result.data()),
+                    result.size());
+      }
       if (file_.bad()) {
         release(true);
         LOG(ERROR) << "Error writing to " << filename_ << endl;
@@ -80,11 +83,10 @@ void MutelemetryLogger::run() {
           assert(dp->size() <= DataBuffer::max_data_size_);
 
 #ifdef TEST_PARSE_VALIDITY
-          bool valid = false;
           const uint8_t *buffer = dp->data();
           const ULogMessageHeader *hdr =
               reinterpret_cast<const ULogMessageHeader *>(buffer);
-          valid = MutelemetryParser::getInstance().parse(buffer);
+          bool valid = MutelemetryParser::getInstance().parse(buffer);
           if (valid && ULogMessageType(hdr->type_) == ULogMessageType::A) {
             const uint8_t *data_buffer = buffer + sizeof(*hdr) + hdr->size_;
             valid = MutelemetryParser::getInstance().parse(data_buffer);

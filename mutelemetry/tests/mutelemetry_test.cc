@@ -25,12 +25,14 @@ class DataType0Serializable : public Serializable, public DataType0 {
 class DataType1Serializable : public Serializable, public DataType1 {
  public:
   vector<uint8_t> serialize() override {
-    vector<uint8_t> serialized(sizeof(DataType1));
+    uint64_t timestamp = 0;
+    vector<uint8_t> serialized(sizeof(timestamp) + sizeof(DataType1));
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
-    size_t len = 0;
-    memcpy(&serialized[0], a, sizeof(a));
+    size_t len = sizeof(timestamp);
+    memcpy(&serialized[0], &timestamp, len);
+    memcpy(&serialized[len], a, sizeof(a));
     len += sizeof(a);
     memcpy(&serialized[len], b, sizeof(b));
     assert(serialized.size() == sizeof(b) + len);
@@ -40,11 +42,14 @@ class DataType1Serializable : public Serializable, public DataType1 {
 };
 
 vector<uint8_t> DataType2_serialize(const DataType2 &d2) {
-  vector<uint8_t> serialized;
   size_t len = 0;
+  uint64_t timestamp = 0;
   size_t v_size = sizeof(d2.a[0]);
-  size_t new_size = sizeof(d2.a);
-  serialized.resize(new_size);
+  size_t new_size = sizeof(timestamp) + d2.a.size() * v_size;
+  vector<uint8_t> serialized(new_size);
+
+  memcpy(&serialized[0], &timestamp, v_size);
+  len += sizeof(timestamp);
 
   for (auto v : d2.a) {
     memcpy(&serialized[len], &v, v_size);
@@ -59,12 +64,16 @@ vector<uint8_t> DataType2_serialize(const DataType2 &d2) {
     len += v_size;
   }
 
-  serialized.push_back((uint8_t)d2.c);
+  serialized.emplace_back((uint8_t)d2.c);
   return serialized;
 }
 
 vector<uint8_t> DataType3_serialize(const DataType3 &d3) {
-  vector<uint8_t> serialized;
+  uint64_t timestamp = 0;
+  vector<uint8_t> serialized(sizeof(timestamp));
+
+  memcpy(&serialized[0], &timestamp, sizeof(timestamp));
+
   for (DataType0 v : d3.a) {
     vector<uint8_t> a_serialized = v.serialize();
     serialized.insert(serialized.end(), a_serialized.begin(),
@@ -84,11 +93,15 @@ vector<uint8_t> DataType3_serialize(const DataType3 &d3) {
 }
 
 vector<uint8_t> DataType4_serialize(const DataType4 &d4) {
-  vector<uint8_t> serialized;
+  uint64_t timestamp = 0;
+  vector<uint8_t> serialized(sizeof(timestamp));
   stringstream ss;
   ss << TOSTR(DataType4)
      << " serialization ";  //<< fixed << setprecision(4) << d;
   LOG(INFO) << ss.str();
+
+  memcpy(&serialized[0], &timestamp, sizeof(timestamp));
+
   for (int i = 0; i < d4.size(); ++i) {
     vector<uint8_t> d3_serialized = DataType3_serialize(d4[i]);
     serialized.insert(serialized.end(), d3_serialized.begin(),
@@ -227,15 +240,11 @@ int main(int argc, char **argv) {
   mt.register_info("sys_name", "RBPi4");
   mt.register_info("replay", mt.get_logname());
   mt.register_param("int32_t param1", 123);
-  mt.register_data_format(DataType0::name() + string(":") +
-                          DataType0::fields());
-  mt.register_data_format(DataType1::name() + string(":") +
-                          DataType1::fields());
-  mt.register_data_format(DataType2::name() + string(":") +
-                          DataType2::fields());
-  mt.register_data_format(DataType3::name() + string(":") +
-                          DataType3::fields());
-  mt.register_data_format("DataType4:DataType3[3] array;");
+  mt.register_data_format(DataType0::name(), DataType0::fields());
+  mt.register_data_format(DataType1::name(), DataType1::fields());
+  mt.register_data_format(DataType2::name(), DataType2::fields());
+  mt.register_data_format(DataType3::name(), DataType3::fields());
+  mt.register_data_format("DataType4", "DataType3[3] array;");
   mt.register_param("float param2", -3.01f);
 
   const int n_threads = atoi(argv[1]);

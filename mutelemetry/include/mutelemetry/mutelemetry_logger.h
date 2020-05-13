@@ -8,6 +8,7 @@
 #include <chrono>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -105,6 +106,7 @@ class MutelemetryLogger {
   std::array<DataBuffer, 8> mem_pool_;
   mutelemetry_tools::ConcStack<DataBuffer *> pool_stacked_index_;
   DataBuffer *curr_idx_;
+  mutable std::mutex mutex_;
 };
 
 }  // namespace mutelemetry_logger

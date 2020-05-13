@@ -121,7 +121,7 @@ bool MuTelemetry::create_header_and_flags() {
   mB.h_.size_ = sizeof(mB) - sizeof(mB.h_);
   mB.h_.type_ = static_cast<uint8_t>(ULogMessageType::B);
   SerializedData mb_buffer(sizeof(mB));
-  memcpy(mb_buffer.data(), reinterpret_cast<uint8_t *>(&mB), sizeof(mB));
+  memcpy(mb_buffer.data(), &mB, sizeof(mB));
   SerializedDataPtr mbp = make_shared<SerializedData>(move(mb_buffer));
   to_io(mbp);
 
@@ -236,11 +236,13 @@ bool MuTelemetry::register_info_multi(const string &key, const string &value,
   return res;
 }
 
-bool MuTelemetry::register_data_format(const string &format) {
+bool MuTelemetry::register_data_format(const string &type_name,
+                                       const string &fields) {
   if (!is_enabled()) return true;
 
   ULogMessageF mF = {};
 
+  string format = type_name + string(":uint64_t timestamp;") + fields;
   mF.h_.type_ = static_cast<uint8_t>(ULogMessageType::F);
   int format_len = snprintf(mF.format_, format.size(), "%s", format.c_str());
   assert(format_len == format.size());
@@ -248,7 +250,7 @@ bool MuTelemetry::register_data_format(const string &format) {
   mF.h_.size_ = msg_size - sizeof(mF.h_);
 
   SerializedData mf_buffer(msg_size);
-  memcpy(mf_buffer.data(), reinterpret_cast<uint8_t *>(&mF), msg_size);
+  memcpy(mf_buffer.data(), &mF, msg_size);
   SerializedDataPtr mfp = make_shared<SerializedData>(move(mf_buffer));
   to_io(mfp);
 
@@ -279,18 +281,18 @@ bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
   mD.h_.type_ = static_cast<uint8_t>(ULogMessageType::D);
   mD.msg_id_ = mA.msg_id_;
 
-  if (data.size() + sizeof(timestamp) <= sizeof(mD.data_)) {
+  if (data.size() <= sizeof(mD.data_)) {
     size_t len = sizeof(timestamp);
-    memcpy(&mD.data_[0], reinterpret_cast<uint8_t *>(&timestamp), len);
-    memcpy(&mD.data_[len], data.data(), data.size());
-    len += data.size();
+    memcpy(&mD.data_[0], &timestamp, len);
+    memcpy(&mD.data_[len], data.data() + len, data.size() - len);
+    len = data.size();
 
     size_t md_msg_size = sizeof(mD) - sizeof(mD.data_) + len;
     mD.h_.size_ = md_msg_size - sizeof(mD.h_);
 
     SerializedData buffer(ma_msg_size + md_msg_size);
-    memcpy(&buffer[0], reinterpret_cast<uint8_t *>(&mA), ma_msg_size);
-    memcpy(&buffer[ma_msg_size], reinterpret_cast<uint8_t *>(&mD), md_msg_size);
+    memcpy(&buffer[0], &mA, ma_msg_size);
+    memcpy(&buffer[ma_msg_size], &mD, md_msg_size);
 
     SerializedDataPtr datap = make_shared<SerializedData>(move(buffer));
     to_io(datap);
@@ -323,7 +325,7 @@ bool MuTelemetry::store_message(const string &message,
   mL.h_.size_ = msg_size - sizeof(mL.h_);
 
   SerializedData ml_buffer(msg_size);
-  memcpy(ml_buffer.data(), reinterpret_cast<uint8_t *>(&mL), msg_size);
+  memcpy(ml_buffer.data(), &mL, msg_size);
   SerializedDataPtr mlp = make_shared<SerializedData>(move(ml_buffer));
   to_io(mlp);
 

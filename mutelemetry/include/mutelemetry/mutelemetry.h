@@ -137,8 +137,7 @@ class MuTelemetry {
   bool register_info(const std::string &, const std::string &);
   bool register_info_multi(const std::string &, const std::string &, bool);
 
-  // example of format string: "DataTypeName;float a;int[3] b;bool c;"
-  bool register_data_format(const std::string &);
+  bool register_data_format(const std::string &, const std::string &);
 
   // v1: using Serializable interface
   bool store_data(std::shared_ptr<Serializable> s, const std::string &type_name,
