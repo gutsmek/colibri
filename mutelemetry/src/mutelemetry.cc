@@ -1,24 +1,24 @@
 #include "mutelemetry/mutelemetry.h"
 
 #include <assert.h>
-#include <iostream>
-#include <memory>
-
 #include <glog/logging.h>
 #include <muconfig/muconfig.h>
+#include <boost/date_time.hpp>
+#include <iostream>
+#include <memory>
 
 using namespace std;
 using namespace muconfig;
 using namespace mutelemetry;
 using namespace mutelemetry_ulog;
+using namespace mutelemetry_tools;
 
 MuTelemetry MuTelemetry::instance_ = {};
 
-bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
+bool MuTelemetry::read_config(const string &file) {
   unique_ptr<MuConfig> cfg = MuConfig::createConfig(file);
   bool with_local_log = false;
   bool with_network = false;
-  string log_dir = "";
   bool res = false;
 
   if (cfg != nullptr && cfg->isOk()) {
@@ -37,20 +37,19 @@ bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
     }
 
     if (with_local_log) {
+      string log_dir = "";
       const string s_log_dir = "mutelemetry.log_directory_path";
       auto o_log_dir = cfg->getObject(s_log_dir, TYPE::STRING);
       if (o_log_dir) {
         auto log_dirp = o_log_dir->getValueString();
         if (log_dirp) log_dir = *log_dirp;
       }
+
+      log_dir_ = log_dir;
     }
 
-    inst.with_network_ = with_network;
-    inst.with_local_log_ = with_local_log;
-    if (log_dir == "")
-      inst.log_dir_ = "./";
-    else
-      inst.log_dir_ = log_dir;
+    with_network_ = with_network;
+    with_local_log_ = with_local_log;
     res = true;
   }
 
@@ -58,26 +57,55 @@ bool MuTelemetry::read_config(MuTelemetry &inst, const string &file) {
 }
 
 bool MuTelemetry::init(fflow::RouteSystemPtr roster) {
-  if (instance_.roster_) return false;
-  instance_.start_timestamp_ = instance_.timestamp();
-  if (instance_.read_config()) {
-    if (instance_.with_network_ && roster != nullptr) {
-      instance_.roster_ = roster;
-      if (instance_.roster_ == nullptr) instance_.with_network_ = false;
+  MuTelemetry &instance = getInstance();
+  if (instance.start_timestamp_ != 0) {
+    LOG(INFO) << "MuTelemetry already initialized\n";
+    return false;
+  }
+
+  instance.start_timestamp_ = instance.timestamp();
+  if (instance.read_config()) {
+    if (instance.with_network_ && roster != nullptr) {
+      instance.roster_ = roster;
     } else {
       LOG(INFO) << "MuTelemetry network is disabled\n";
     }
 
-    if (instance_.with_local_log_) {
-      LOG(INFO) << "MuTelemetry log directory: " << instance_.log_dir_ << endl;
-    } else {
-      LOG(INFO) << "MuTelemetry logging is disabled\n";
+    if (instance.with_local_log_) {
+      stringstream filename;
+      boost::posix_time::ptime time_epoch(boost::gregorian::date(1970, 1, 1));
+      boost::posix_time::ptime now =
+          time_epoch +
+          boost::posix_time::microseconds(instance_.start_timestamp_);
+
+      filename << instance.log_dir_;
+      if (instance.log_dir_ != "" &&
+          instance.log_dir_[instance.log_dir_.length() - 1] != '/')
+        filename << '/';
+
+      filename << "mutelemetry_"
+               << boost::posix_time::to_iso_extended_string(now) << ".ulg";
+      instance.log_file_ = filename.str();
+
+      instance.with_local_log_ =
+          instance.logger_.init(instance.log_file_, &instance.log_queue_);
+      if (instance.with_local_log_) {
+        LOG(INFO) << "MuTelemetry log file: " << instance.logger_.get_logname()
+                  << endl;
+        instance.logger_.run();
+      }
     }
+
+    if (!instance.with_local_log_)
+      LOG(INFO) << "MuTelemetry logging is disabled\n";
   }
 
-  if (!instance_.is_enabled()) LOG(INFO) << "MuTelemetry is disabled\n";
+  if (instance.is_enabled())
+    instance.create_header_and_flags();
+  else
+    LOG(INFO) << "MuTelemetry is disabled\n";
 
-  return instance_.is_enabled();
+  return instance.is_enabled();
 }
 
 bool MuTelemetry::create_header_and_flags() {
@@ -93,7 +121,7 @@ bool MuTelemetry::create_header_and_flags() {
   mB.h_.size_ = sizeof(mB) - sizeof(mB.h_);
   mB.h_.type_ = static_cast<uint8_t>(ULogMessageType::B);
   SerializedData mb_buffer(sizeof(mB));
-  memcpy(mb_buffer.data(), reinterpret_cast<uint8_t *>(&mB), sizeof(mB));
+  memcpy(mb_buffer.data(), &mB, sizeof(mB));
   SerializedDataPtr mbp = make_shared<SerializedData>(move(mb_buffer));
   to_io(mbp);
 
@@ -208,19 +236,21 @@ bool MuTelemetry::register_info_multi(const string &key, const string &value,
   return res;
 }
 
-bool MuTelemetry::register_data_format(const string &format) {
+bool MuTelemetry::register_data_format(const string &type_name,
+                                       const string &fields) {
   if (!is_enabled()) return true;
 
   ULogMessageF mF = {};
 
+  string format = type_name + string(":uint64_t timestamp;") + fields;
   mF.h_.type_ = static_cast<uint8_t>(ULogMessageType::F);
-  int format_len =
-      snprintf(mF.format_, sizeof(mF.format_), "%s", format.c_str());
+  int format_len = snprintf(mF.format_, format.size(), "%s", format.c_str());
+  assert(format_len == format.size());
   size_t msg_size = sizeof(mF) - sizeof(mF.format_) + format_len;
   mF.h_.size_ = msg_size - sizeof(mF.h_);
 
-  SerializedData mf_buffer(sizeof(msg_size));
-  memcpy(mf_buffer.data(), reinterpret_cast<uint8_t *>(&mF), msg_size);
+  SerializedData mf_buffer(msg_size);
+  memcpy(mf_buffer.data(), &mF, msg_size);
   SerializedDataPtr mfp = make_shared<SerializedData>(move(mf_buffer));
   to_io(mfp);
 
@@ -232,10 +262,10 @@ bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
                                   const string &annotation,
                                   uint64_t timestamp) {
   if (!is_enabled()) return true;
-  // LOG(INFO) << "[" << this_thread::get_id() << "]:"
-  //          << " Annotation=\'" << annotation << "\' Type=" << type_name;
-
+  LOG(INFO) << "[" << this_thread::get_id() << "]:"
+            << " Annotation=\'" << annotation << "\' Type=" << type_name;
   bool res = true;
+
   ULogMessageA mA = {};
   mA.h_.type_ = static_cast<uint8_t>(ULogMessageType::A);
   mA.msg_id_ = get_msg_id(type_name);
@@ -251,18 +281,18 @@ bool MuTelemetry::store_data_intl(const vector<uint8_t> &data,
   mD.h_.type_ = static_cast<uint8_t>(ULogMessageType::D);
   mD.msg_id_ = mA.msg_id_;
 
-  if (data.size() + sizeof(timestamp) <= sizeof(mD.data_)) {
+  if (data.size() <= sizeof(mD.data_)) {
     size_t len = sizeof(timestamp);
-    memcpy(&mD.data_[0], reinterpret_cast<uint8_t *>(&timestamp), len);
-    memcpy(&mD.data_[len], data.data(), data.size());
-    len += data.size();
+    memcpy(&mD.data_[0], &timestamp, len);
+    memcpy(&mD.data_[len], data.data() + len, data.size() - len);
+    len = data.size();
 
     size_t md_msg_size = sizeof(mD) - sizeof(mD.data_) + len;
     mD.h_.size_ = md_msg_size - sizeof(mD.h_);
 
     SerializedData buffer(ma_msg_size + md_msg_size);
-    memcpy(&buffer[0], reinterpret_cast<uint8_t *>(&mA), ma_msg_size);
-    memcpy(&buffer[ma_msg_size], reinterpret_cast<uint8_t *>(&mD), md_msg_size);
+    memcpy(&buffer[0], &mA, ma_msg_size);
+    memcpy(&buffer[ma_msg_size], &mD, md_msg_size);
 
     SerializedDataPtr datap = make_shared<SerializedData>(move(buffer));
     to_io(datap);
@@ -294,8 +324,8 @@ bool MuTelemetry::store_message(const string &message,
   size_t msg_size = sizeof(mL) - sizeof(mL.message_) + len;
   mL.h_.size_ = msg_size - sizeof(mL.h_);
 
-  SerializedData ml_buffer(sizeof(msg_size));
-  memcpy(ml_buffer.data(), reinterpret_cast<uint8_t *>(&mL), msg_size);
+  SerializedData ml_buffer(msg_size);
+  memcpy(ml_buffer.data(), &mL, msg_size);
   SerializedDataPtr mlp = make_shared<SerializedData>(move(ml_buffer));
   to_io(mlp);
 

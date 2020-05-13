@@ -18,7 +18,6 @@ class DataType0Serializable : public Serializable, public DataType0 {
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
-    // DataType0 has its own ULog-compliant serialization method, let's reuse it
     return DataType0::serialize();
   }
 };
@@ -26,23 +25,88 @@ class DataType0Serializable : public Serializable, public DataType0 {
 class DataType1Serializable : public Serializable, public DataType1 {
  public:
   vector<uint8_t> serialize() override {
-    std::vector<uint8_t> serialized;
+    uint64_t timestamp = 0;
+    vector<uint8_t> serialized(sizeof(timestamp) + sizeof(DataType1));
     stringstream ss;
     ss << name() << " serialization ";  //<< fixed << setprecision(4) << *this;
     LOG(INFO) << ss.str();
-    // TODO: add serialization here, since DataType1 doesn't have its own
+    size_t len = sizeof(timestamp);
+    memcpy(&serialized[0], &timestamp, len);
+    memcpy(&serialized[len], a, sizeof(a));
+    len += sizeof(a);
+    memcpy(&serialized[len], b, sizeof(b));
+    assert(serialized.size() == sizeof(b) + len);
     LOG(INFO) << name() << " serialization finished";
     return serialized;
   }
 };
 
-std::vector<uint8_t> DataType4_serialize(const DataType4 &d) {
-  std::vector<uint8_t> serialized;
+vector<uint8_t> DataType2_serialize(const DataType2 &d2) {
+  size_t len = 0;
+  uint64_t timestamp = 0;
+  size_t v_size = sizeof(d2.a[0]);
+  size_t new_size = sizeof(timestamp) + d2.a.size() * v_size;
+  vector<uint8_t> serialized(new_size);
+
+  memcpy(&serialized[0], &timestamp, v_size);
+  len += sizeof(timestamp);
+
+  for (auto v : d2.a) {
+    memcpy(&serialized[len], &v, v_size);
+    len += v_size;
+  }
+
+  for (const string &v : d2.b) {
+    v_size = v.length();
+    new_size += v_size;
+    serialized.resize(new_size);
+    memcpy(&serialized[len], v.c_str(), v_size);
+    len += v_size;
+  }
+
+  serialized.emplace_back((uint8_t)d2.c);
+  return serialized;
+}
+
+vector<uint8_t> DataType3_serialize(const DataType3 &d3) {
+  uint64_t timestamp = 0;
+  vector<uint8_t> serialized(sizeof(timestamp));
+
+  memcpy(&serialized[0], &timestamp, sizeof(timestamp));
+
+  for (DataType0 v : d3.a) {
+    vector<uint8_t> a_serialized = v.serialize();
+    serialized.insert(serialized.end(), a_serialized.begin(),
+                      a_serialized.end());
+  }
+
+  DataType1Serializable d1;
+  memcpy(d1.a, d3.b.a, sizeof(d1.a));
+  memcpy(d1.b, d3.b.b, sizeof(d1.b));
+  vector<uint8_t> b_serialized = d1.serialize();
+  serialized.insert(serialized.end(), b_serialized.begin(), b_serialized.end());
+
+  vector<uint8_t> c_serialized = DataType2_serialize(d3.c);
+  serialized.insert(serialized.end(), c_serialized.begin(), c_serialized.end());
+
+  return serialized;
+}
+
+vector<uint8_t> DataType4_serialize(const DataType4 &d4) {
+  uint64_t timestamp = 0;
+  vector<uint8_t> serialized(sizeof(timestamp));
   stringstream ss;
   ss << TOSTR(DataType4)
      << " serialization ";  //<< fixed << setprecision(4) << d;
   LOG(INFO) << ss.str();
-  // TODO: add serialization here
+
+  memcpy(&serialized[0], &timestamp, sizeof(timestamp));
+
+  for (int i = 0; i < d4.size(); ++i) {
+    vector<uint8_t> d3_serialized = DataType3_serialize(d4[i]);
+    serialized.insert(serialized.end(), d3_serialized.begin(),
+                      d3_serialized.end());
+  }
   LOG(INFO) << TOSTR(DataType4) << " external serialization finished";
   return serialized;
 }
@@ -102,12 +166,11 @@ auto generator = [](int type) {
         case 2: {
           DataType2 d2;
           SerializerFunc s = [&d2]() {
-            std::vector<uint8_t> serialized;
             stringstream ss;
             ss << DataType2::name() << " serialization ";
             //<< fixed << setprecision(4) << d2;
             LOG(INFO) << ss.str();
-            // TODO: add serialization here
+            vector<uint8_t> serialized = DataType2_serialize(d2);
             LOG(INFO) << DataType2::name()
                       << " functional serialization finished" << endl;
             return serialized;
@@ -117,25 +180,24 @@ auto generator = [](int type) {
         } break;
 
         case 3: {
-          DataType2 d3;
+          DataType3 d3;
           SerializerFunc s = [&d3]() {
-            std::vector<uint8_t> serialized;
             stringstream ss;
             ss << DataType3::name() << " serialization ";
             //<< fixed << setprecision(4) << d3;
             LOG(INFO) << ss.str();
-            // TODO: add serialization here
+            vector<uint8_t> serialized = DataType3_serialize(d3);
             LOG(INFO) << DataType3::name()
                       << " functional serialization finished" << endl;
             return serialized;
           };
-          ret = MuTelemetry::getInstance().store_data(s, DataType2::name(),
+          ret = MuTelemetry::getInstance().store_data(s, DataType3::name(),
                                                       TOSTR(d3));
         } break;
 
         case 4: {
           DataType4 d4;
-          std::vector<uint8_t> d4_serialized = DataType4_serialize(d4);
+          vector<uint8_t> d4_serialized = DataType4_serialize(d4);
           ret = MuTelemetry::getInstance().store_data(
               d4_serialized, TOSTR(DataType4), TOSTR(d4));
         } break;
@@ -178,15 +240,11 @@ int main(int argc, char **argv) {
   mt.register_info("sys_name", "RBPi4");
   mt.register_info("replay", mt.get_logname());
   mt.register_param("int32_t param1", 123);
-  mt.register_data_format(DataType0::name() + string(":") +
-                          DataType0::fields());
-  mt.register_data_format(DataType1::name() + string(":") +
-                          DataType1::fields());
-  mt.register_data_format(DataType2::name() + string(":") +
-                          DataType2::fields());
-  mt.register_data_format(DataType3::name() + string(":") +
-                          DataType3::fields());
-  mt.register_data_format("DataType4:DataType3[3] array;");
+  mt.register_data_format(DataType0::name(), DataType0::fields());
+  mt.register_data_format(DataType1::name(), DataType1::fields());
+  mt.register_data_format(DataType2::name(), DataType2::fields());
+  mt.register_data_format(DataType3::name(), DataType3::fields());
+  mt.register_data_format("DataType4", "DataType3[3] array;");
   mt.register_param("float param2", -3.01f);
 
   const int n_threads = atoi(argv[1]);
@@ -200,6 +258,8 @@ int main(int argc, char **argv) {
     if (!get<0>(result))
       LOG(INFO) << "Thread [" << get<1>(result) << "] failed" << endl;
   }
+
+  pause();
 
   return 0;
 }

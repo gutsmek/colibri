@@ -13,14 +13,14 @@
 #include <muroute/subsystem.h>
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <functional>
-#include <mutex>
-#include <queue>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
+#include "mutelemetry_logger.h"
+#include "mutelemetry_network.h"
+#include "mutelemetry_tools.h"
 #include "mutelemetry_ulog.h"
 
 namespace mutelemetry {
@@ -48,7 +48,12 @@ class MuTelemetry {
       ids_ = id.ids_;
     }
 
-    ID<T> &operator=(const ID<T> &that) { return *this; }
+    ID<T> &operator=(const ID<T> &that) {
+      if (&that == this) return *this;
+      id_cntr_ = that.id_cntr_.load();
+      ids_ = that.ids_;
+      return *this;
+    }
 
     inline T get_id(const std::string &name) {
       if (ids_.find(name) == ids_.end()) ids_[name] = id_cntr_++;
@@ -56,48 +61,8 @@ class MuTelemetry {
     }
   };
 
-  // TODO: change to lock free
-  template <typename T>
-  class ConcQueue {
-   public:
-    ConcQueue() = default;
-    virtual ~ConcQueue() = default;
-
-    template <typename... Args>
-    void push(Args &&... args) {
-      addData_protected([&] { queue_.emplace(std::forward<Args>(args)...); });
-    }
-
-    T pop(void) noexcept {
-      std::unique_lock<std::mutex> lock{mutex_};
-      while (queue_.empty()) {
-        condNewData_.wait(lock);
-      }
-      auto elem = std::move(queue_.front());
-      queue_.pop();
-      return elem;
-    }
-
-    size_t size(void) const { return queue_.size(); }
-    bool empty(void) const { return queue_.empty(); }
-
-   private:
-    template <class F>
-    void addData_protected(F &&fct) {
-      std::unique_lock<std::mutex> lock{mutex_};
-      fct();
-      lock.unlock();
-      condNewData_.notify_one();
-    }
-
-    std::queue<T> queue_;
-    std::mutex mutex_;
-    std::condition_variable condNewData_;
-  };
-
   bool with_network_ = false;
   bool with_local_log_ = false;
-  fflow::RouteSystemPtr roster_ = nullptr;
   std::string log_dir_ = "";
   std::string log_file_ = "";
   uint64_t start_timestamp_ = 0;
@@ -105,10 +70,11 @@ class MuTelemetry {
   ID<uint16_t> msg_id_;
   std::unordered_map<uint16_t, ID<uint8_t>> multi_id_;
 
-  using SerializedData = std::vector<uint8_t>;
-  using SerializedDataPtr = std::shared_ptr<SerializedData>;
-  ConcQueue<SerializedDataPtr> log_queue_;
-  ConcQueue<SerializedDataPtr> net_queue_;
+  mutelemetry_tools::ConcQueue<mutelemetry_tools::SerializedDataPtr> log_queue_;
+  mutelemetry_tools::ConcQueue<mutelemetry_tools::SerializedDataPtr> net_queue_;
+
+  fflow::RouteSystemPtr roster_ = nullptr;
+  mutelemetry_logger::MutelemetryLogger logger_;
 
  private:
   MuTelemetry() {}
@@ -143,12 +109,12 @@ class MuTelemetry {
         .count();
   }
 
-  bool read_config(MuTelemetry &inst = instance_, const std::string &file = "");
+  bool read_config(const std::string &file = "");
   bool create_header_and_flags();
 
-  inline void to_io(const SerializedDataPtr dp) {
-    if (is_log_enabled()) log_queue_.push(dp);
-    if (is_net_enabled()) net_queue_.push(dp);
+  inline void to_io(const mutelemetry_tools::SerializedDataPtr dp) {
+    if (is_log_enabled()) log_queue_.enqueue(dp);
+    if (is_net_enabled()) net_queue_.enqueue(dp);
   }
 
   bool store_data_intl(const std::vector<uint8_t> &, const std::string &,
@@ -171,8 +137,7 @@ class MuTelemetry {
   bool register_info(const std::string &, const std::string &);
   bool register_info_multi(const std::string &, const std::string &, bool);
 
-  // example of format string: "DataTypeName;float a;int[3] b;bool c;"
-  bool register_data_format(const std::string &);
+  bool register_data_format(const std::string &, const std::string &);
 
   // v1: using Serializable interface
   bool store_data(std::shared_ptr<Serializable> s, const std::string &type_name,

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <glog/logging.h>
 #include <algorithm>
 #include <array>
@@ -14,6 +15,7 @@
 #pragma pack(push, 1)
 
 struct DataType0 {
+  uint64_t __timestamp = 0;
   double a = 1111.2222;
   unsigned int b = 3;
   short int c = -4;
@@ -40,8 +42,16 @@ struct DataType0 {
   bool operator!=(const DataType0& that) const { return !(*this == that); }
 
   std::vector<uint8_t> serialize() {
-    std::vector<uint8_t> serialized;
-    // TODO: add serialization here
+    std::vector<uint8_t> serialized(sizeof(DataType0));
+    size_t len = 0;
+    std::memcpy(&serialized[0], &__timestamp, sizeof(__timestamp));
+    len += sizeof(__timestamp);
+    std::memcpy(&serialized[len], &a, sizeof(a));
+    len += sizeof(a);
+    std::memcpy(&serialized[len], &b, sizeof(b));
+    len += sizeof(b);
+    std::memcpy(&serialized[len], &c, sizeof(c));
+    assert(serialized.size() == sizeof(c) + len);
     LOG(INFO) << name() << " builtin serialization finished";
     return serialized;
   }
@@ -57,7 +67,7 @@ struct DataType1 {
   }
 
   static inline const std::string& fields() {
-    static const std::string fields_("float[3] a;uint32_t[4] b;");
+    static const std::string fields_("float[3] a;int32_t[4] b;");
     return fields_;
   }
 
